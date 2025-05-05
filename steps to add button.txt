@@ -1,0 +1,14 @@
+edit_page.html
+1) add button like this <button onclick="addFormBox()">\ud83d\udcdd Add Form Box</button>
+2) add functions like this: function addFormBox() in scripts
+3) update the Then inside saveLayout() place for new button
+4) // Finally at the bottom when loading existing layout items add to layout
+
+edit_page.py
+5) add needed functions backend
+
+6) user_page.html update the part: {% for item in layout %} add button for user
+
+7) can add functions to user_page.py
+
+8) add bluprints if ne .py file is made in app.py

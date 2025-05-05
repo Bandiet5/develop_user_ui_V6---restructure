@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manage Database</title>
+    <style>
+        .column-row {
+            display: flex;
+            margin-bottom: 5px;
+            gap: 10px;
+        }
+        .column-row input, .column-row select {
+            flex: 1;
+        }
+        .column-row button {
+            flex: 0 0 auto;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗃️ Manage Database</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul style="color: green;">
+          {% for msg in messages %}
+            <li>{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <!-- 🆕 Create Database Section -->
+    <form action="{{ url_for('database.create_database') }}" method="POST" class="section">
+        <label><strong>Create New Database:</strong></label><br>
+        <input type="text" name="new_database" placeholder="Database name (no extension)" required>
+        <button type="submit">➕ Create Database</button>
+    </form>
+
+    <form action="{{ url_for('database.create_table') }}" method="POST">
+        <div class="section">
+            <label><strong>Table Name:</strong></label>
+            <input type="text" name="table_name" required>
+        </div>
+
+        <div class="section">
+            <label><strong>Choose Database:</strong></label>
+            <select name="database">
+                {% for db in databases %}
+                    <option value="{{ db }}">{{ db }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="section">
+            <label><strong>Columns:</strong></label>
+            <div id="columns"></div>
+            <button type="button" onclick="addColumnRow()">➕ Add Column</button>
+        </div>
+
+        <div class="section">
+            <label><strong>Upload CSV or Excel to Prefill Columns:</strong></label><br>
+            <input type="file" id="uploadFile">
+            <button type="button" onclick="uploadColumns()">📤 Upload</button>
+        </div>
+
+        <div class="section">
+            <button type="submit">✅ Create Table</button>
+        </div>
+    </form>
+
+    <hr>
+    <h3>📚 Existing Databases & Tables</h3>
+
+    {% for db, tables in databases.items() %}
+        <div style="margin-bottom: 20px;">
+            <h4>{{ db }} 
+                <form action="{{ url_for('database.delete_database') }}" method="POST" style="display:inline;">
+                    <input type="hidden" name="db_name" value="{{ db }}">
+                    <button type="submit" style="color: red;">🗑️ Delete Database</button>
+                </form>
+            </h4>
+
+            {% if tables is mapping and tables.error %}
+                <p style="color: red;">Error: {{ tables.error }}</p>
+            {% else %}
+                <ul>
+                    {% for table in tables %}
+                        <li>
+                            <strong>{{ table.name }}</strong>
+                            ({{ table.rows }} rows)
+                            <form action="{{ url_for('database.delete_table') }}" method="POST" style="display:inline;">
+                                <input type="hidden" name="db_name" value="{{ db }}">
+                                <input type="hidden" name="table_name" value="{{ table.name }}">
+                                <button type="submit" style="color:red;">🗑️ Delete Table</button>
+                            </form>
+                            <br>
+                            Columns: {{ table.columns | join(', ') }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <hr>
+    <p><a href="{{ url_for('developer.developer_dashboard') }}">⬅ Back to Developer Dashboard</a></p>
+
+    <script>
+        function addColumnRow(name = '', type = 'TEXT') {
+            const row = document.createElement('div');
+            row.className = 'column-row';
+            row.innerHTML = `
+                <input type="text" name="column_names[]" placeholder="Column Name" value="${name}" required>
+                <select name="column_types[]">
+                    <option value="TEXT" ${type === 'TEXT' ? 'selected' : ''}>TEXT</option>
+                    <option value="INTEGER" ${type === 'INTEGER' ? 'selected' : ''}>INTEGER</option>
+                    <option value="REAL" ${type === 'REAL' ? 'selected' : ''}>REAL</option>
+                </select>
+                <button type="button" onclick="this.parentElement.remove()">❌</button>
+            `;
+            document.getElementById('columns').appendChild(row);
+        }
+
+        function uploadColumns() {
+            const fileInput = document.getElementById('uploadFile');
+            const file = fileInput.files[0];
+            if (!file) return alert("Please select a file");
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch("{{ url_for('database.upload_table_columns') }}", {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.columns) {
+                    document.getElementById('columns').innerHTML = '';
+                    data.columns.forEach(col => addColumnRow(col.name, col.type));
+                } else {
+                    alert("Failed to extract columns.");
+                }
+            })
+            .catch(err => {
+                console.error("Upload failed:", err);
+                alert("Upload failed.");
+            });
+        }
+    </script>
+</body>
+</html>

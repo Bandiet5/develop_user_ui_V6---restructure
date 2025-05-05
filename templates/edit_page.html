@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Edit: {{ page_name }}</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/editor.css') }}">
+    </head>
+    
+<body>
+    <h2>Editing: {{ page_name }}</h2>
+
+    <div id="workspace" style="width: 100%; height: 80vh; border: 1px dashed gray; position: relative;"></div>
+
+
+    <!-- these buttons must be OUTSIDE workspace! -->
+<div class="bottom-buttons">
+    <button onclick="addButton()">➕ Add Button</button>
+    <button onclick="addUploadBox()">📤 Upload File to Table</button>
+    <button onclick="addDownloadBox()">📥 Download Table to File</button>
+    <button onclick="addFormBox()">📝 Add Form Box</button>
+    <button onclick="addMiniAnalytics()">📊 Add Mini Analytics</button>
+    <button onclick="addAIBox()">🤖 Add AI Chat</button>
+    <button onclick="saveLayout()">💾 Save</button>
+    <a href="{{ url_for('developer.developer_dashboard') }}">
+        <button>⬅️ Back to Developer Dashboard</button>
+    </a>
+</div>
+
+    <script>
+        let dragged = null, offsetX = 0, offsetY = 0;
+        let dragTimeout = null;
+        let isDragging = false;
+
+        document.addEventListener('mousedown', e => {
+            const box = e.target.closest('.button-box');
+        
+            // ❌ Ignore drag if clicking inside input/textarea/select
+            const isFormControl = ['TEXTAREA', 'INPUT', 'SELECT'].includes(e.target.tagName);
+            if (box && !isFormControl) {
+                offsetX = e.offsetX;
+                offsetY = e.offsetY;
+        
+                dragTimeout = setTimeout(() => {
+                    dragged = box;
+                    isDragging = true;
+                }, 500); // 0.5s is fine now — won't trigger on typing/resizing
+            }
+        });
+        
+        
+        document.addEventListener('mousemove', e => {
+    if (isDragging && dragged) {
+        const gridSize = 20;
+        const newLeft = Math.round((e.pageX - offsetX) / gridSize) * gridSize;
+        const newTop = Math.round((e.pageY - offsetY) / gridSize) * gridSize;
+
+        dragged.style.left = newLeft + 'px';
+        dragged.style.top = newTop + 'px';
+
+        // 🟢 ADD THIS BELOW moving the dragged box:
+        const workspace = document.getElementById('workspace');
+        const bottomEdge = dragged.offsetTop + dragged.offsetHeight;
+
+        if (bottomEdge > workspace.offsetHeight - 60) {
+            workspace.style.minHeight = (bottomEdge + 120) + 'px';
+        }
+    }
+});
+        
+        document.addEventListener('mouseup', () => {
+            clearTimeout(dragTimeout);
+            if (isDragging) {
+                dragged = null;
+                isDragging = false;
+            }
+        });
+        
+    
+        // 🔁 Handle type switch between code vs link
+        function toggleActionInput(select) {
+            const box = select.closest('.button-box');
+            const linkSelect = box.querySelector('.page-link');
+            const codeInput = box.querySelector('.code-input');
+        
+            if (select.value === 'link') {
+                if (linkSelect) linkSelect.style.display = 'block';
+                if (codeInput) codeInput.style.display = 'none';
+            } else {
+                if (linkSelect) linkSelect.style.display = 'none';
+                if (codeInput) codeInput.style.display = 'block';
+            }
+        }
+
+        function addAIBox() {
+            const dbOptions = Object.keys(dbTables).map(db => `<option value="${db}">${db}</option>`).join('');
+
+            const div = document.createElement('div');
+            div.className = 'button-box';
+            div.style.top = '50px';
+            div.style.left = '50px';
+            div.innerHTML = `
+                <input type="text" class="btn-label" value="AI Chat Assistant"><br>
+
+                <select class="type-selector" disabled>
+                    <option value="ai_chat" selected>🤖 AI Chat</option>
+                </select><br>
+
+                <textarea class="ai-question" placeholder="Ask a question like 'filter only active policies'..."></textarea><br>
+
+                <label>
+                    File 1: <input type="file" class="ai-file-1">
+                </label>
+                <label>
+                    File 2 (optional): <input type="file" class="ai-file-2">
+                </label>
+
+                <label>
+                    Database:
+                    <select class="db-select">
+                        <option value="">-- None --</option>
+                        ${dbOptions}
+                    </select>
+                </label>
+
+                <label>
+                    <input type="checkbox" class="background-check"> Run in background
+                </label>
+
+                <button onclick="this.parentElement.remove()">❌</button>
+            `;
+
+            document.getElementById('workspace').appendChild(div);
+        }
+
+        function addFormBox() {
+    const dbOptions = Object.keys(dbTables).map(db => `<option value="${db}">${db}</option>`).join('');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = '50px';
+    div.style.left = '50px';
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="Fix Missing Data"><br>
+
+        <select class="type-selector" disabled>
+            <option value="form" selected>📝 Form</option>
+        </select><br>
+
+        <label>Database:
+            <select class="db-select" onchange="updateTablesAndColumns(this)">
+                ${dbOptions}
+            </select>
+        </label><br>
+
+        <label>Table:
+            <select class="table-select" onchange="loadColumnsForTable(this)"></select>
+        </label><br>
+
+        <input type="hidden" class="key-column" value="system_id">
+
+        <label>Filter Mode:
+            <select class="filter-mode" onchange="toggleFilterInput(this)">
+                <option value="simple" selected>Simple Filter</option>
+                <option value="python">Python Code</option>
+            </select>
+        </label><br>
+
+        <div class="simple-filter-section">
+            <label>Simple SQL Filter:<input type="text" class="sql-filter" placeholder="e.g., policy_number IS NULL"></label><br>
+        </div>
+
+        <div class="python-filter-section" style="display:none;">
+            <label>Python Filter Code:<br>
+                <textarea class="python-filter-code" placeholder="e.g., df[df['column'].isna()]" style="width: 100%; height: 60px;"></textarea>
+            </label><br>
+        </div>
+
+        <label>Editable Columns:<br>
+            <div class="column-list" style="max-height: 100px; overflow-y: auto; border: 1px solid #ccc;"></div>
+        </label><br>
+
+        <hr>
+
+        <label>🔎 Lookup Database:
+            <select class="lookup-db-select" onchange="updateLookupTables(this)">
+                <option value="">-- None --</option>
+                ${dbOptions}
+            </select>
+        </label><br>
+
+        <label>Lookup Table:
+            <select class="lookup-table-select" onchange="loadLookupColumns(this)">
+                <option value="">-- None --</option>
+            </select>
+        </label><br>
+
+        <label>Lookup Key Column:<input type="text" class="lookup-key-column" placeholder="Optional"></label><br>
+
+        <label>Lookup Fields:<br>
+            <div class="lookup-column-list" style="max-height: 100px; overflow-y: auto; border: 1px solid #ccc;">
+                (select after table loaded)
+            </div>
+        </label><br>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+}
+
+        function toggleFilterInput(select) {
+            const box = select.closest('.button-box');
+            const simpleSection = box.querySelector('.simple-filter-section');
+            const pythonSection = box.querySelector('.python-filter-section');
+
+            if (select.value === 'python') {
+                simpleSection.style.display = 'none';
+                pythonSection.style.display = 'block';
+            } else {
+                simpleSection.style.display = 'block';
+                pythonSection.style.display = 'none';
+            }
+        }
+
+        function updateTablesAndColumns(dbSelect) {
+            const box = dbSelect.closest('.button-box');
+            const selectedDb = dbSelect.value;
+            const tableSelect = box.querySelector('.table-select');
+            tableSelect.innerHTML = '';
+
+            if (dbTables[selectedDb]) {
+                dbTables[selectedDb].forEach(table => {
+                    const option = document.createElement('option');
+                    option.value = table;
+                    option.textContent = table;
+                    tableSelect.appendChild(option);
+                });
+            }
+        }
+
+        function loadColumnsForTable(tableSelect) {
+            const box = tableSelect.closest('.button-box');
+            const db = box.querySelector('.db-select').value;
+            const table = tableSelect.value;
+            const columnListDiv = box.querySelector('.column-list');
+            columnListDiv.innerHTML = 'Loading...';
+
+            fetch(`/get_table_columns?db=${encodeURIComponent(db)}&table=${encodeURIComponent(table)}`)
+                .then(res => res.json())
+                .then(data => {
+                    columnListDiv.innerHTML = '';
+                    if (data.columns) {
+                        data.columns.forEach(col => {
+                            const label = document.createElement('label');
+                            label.innerHTML = `<input type="checkbox" value="${col}"> ${col}`;
+                            columnListDiv.appendChild(label);
+                            columnListDiv.appendChild(document.createElement('br'));
+                        });
+                    } else {
+                        columnListDiv.innerHTML = 'No columns found';
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to load columns:", err);
+                    columnListDiv.innerHTML = 'Error loading columns';
+                });
+        }
+        
+        
+        // 💾 Save page layout
+        function saveLayout() {
+    const boxes = document.querySelectorAll('.button-box');
+    const layout = [];
+    const workspace = document.getElementById('workspace');
+
+    boxes.forEach(box => {
+        const type = box.querySelector('.type-selector')?.value || 'code';
+        const label = box.querySelector('.btn-label')?.value || '';
+        const background = box.querySelector('.background-check')?.checked || false;
+
+        const item = {
+            type,
+            label,
+            top: parseInt(box.style.top) || 0,
+            left: parseInt(box.style.left) || 0,
+            background,
+            version: 1,
+            config: {}
+        };
+
+        if (type === 'ai_chat') {
+            item.config.prompt = box.querySelector('.ai-question')?.value || '';
+            item.config.database = box.querySelector('.db-select')?.value || '';
+        }
+
+        else if (type === 'upload') {
+            const dbSelect = box.querySelector('.db-select');
+            const tableSelect = box.querySelector('.table-select');
+            const uploadModeSelect = box.querySelector('.upload-mode');
+
+            item.config.code = box.querySelector('.code-input')?.value || '';
+            item.config.database = dbSelect?.value || '';
+            item.config.table = tableSelect?.value || '';
+            item.config.upload_mode = uploadModeSelect?.value || 'append';
+        }
+
+        else if (type === 'download') {
+            item.config.code = box.querySelector('.code-input')?.value || '';
+            item.config.database = box.querySelector('.db-select')?.value || '';
+            item.config.table = box.querySelector('.table-select')?.value || '';
+            item.config.file_format = box.querySelector('.file-format')?.value || 'csv';
+        }
+
+        else if (type === 'form') {
+            item.config.database = box.querySelector('.db-select')?.value || '';
+            item.config.table = box.querySelector('.table-select')?.value || '';
+            item.config.key_column = box.querySelector('.key-column')?.value || 'system_id';
+            item.config.filter_mode = box.querySelector('.filter-mode')?.value || 'simple';
+            item.config.sql_filter = box.querySelector('.sql-filter')?.value || '';
+            item.config.python_filter = box.querySelector('.python-filter-code')?.value || '';
+            item.config.edit_fields = Array.from(box.querySelectorAll('.column-list input:checked')).map(input => input.value);
+            item.config.lookup_database = box.querySelector('.lookup-db-select')?.value || '';
+            item.config.lookup_table = box.querySelector('.lookup-table-select')?.value || '';
+            item.config.lookup_key_column = box.querySelector('.lookup-key-column')?.value || '';
+            item.config.lookup_fields = Array.from(box.querySelectorAll('.lookup-column-list input:checked')).map(input => input.value);
+        }
+
+        else if (type === 'mini_analytics') {
+            item.config.database = box.querySelector('.db-select')?.value || '';
+            item.config.table = box.querySelector('.table-select')?.value || '';
+            item.config.code = box.querySelector('.code-input')?.value || '';
+            item.config.refresh_interval = parseInt(box.querySelector('.refresh-interval')?.value || '30');
+            item.config.show_chart = box.querySelector('.show-chart-check')?.checked || false;
+        }
+
+        else if (type === 'link') {
+            item.config.target = box.querySelector('.page-link')?.value || '';
+        }
+
+        else if (type === 'code') {
+            item.config.code = box.querySelector('.code-input')?.value || '';
+        }
+
+        layout.push(item);
+    });
+
+    const workspaceHeight = workspace.offsetHeight;
+
+    fetch("{{ url_for('edit_page.save_page', page_name=page_name) }}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ layout, workspace_height: workspaceHeight })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('Failed to save');
+        return res.json();
+    })
+    .then(() => alert("✅ Layout saved!"))
+    .catch(err => {
+        console.error("Save failed:", err);
+        alert("❌ Save failed.");
+    });
+}
+
+
+        // Build dropdowns
+        function buildDatabaseTableDropdowns() {
+        return `
+            <select class="db-select">
+                {% for db in databases %}
+                    <option value="{{ db }}">{{ db }}</option>
+                {% endfor %}
+            </select>
+            <select class="table-select">
+                {% for db, tables in db_tables.items() %}
+                    {% for t in tables %}
+                        <option value="{{ t }}">{{ t }}</option>
+                    {% endfor %}
+                {% endfor %}
+            </select>
+        `;
+        }
+            const dbTables = {{ db_tables | tojson }};
+
+        function addButton() {
+            addButtonFromData({
+            label: "New Button",
+            type: "code",
+            top: 50,
+            left: 50,
+            action: "",
+            background: false
+        });
+        }
+    
+        function addUploadBox() {
+            const firstDb = Object.keys(dbTables)[0] || "";
+            const firstTable = (dbTables[firstDb] || [])[0] || "";
+        
+        addUploadBoxFromData({
+                label: "Upload File",
+                type: "upload",
+                top: 50,
+                left: 50,
+                action: "",
+                background: false,
+                database: firstDb,
+                table: firstTable,
+                upload_mode: "append"  // ✅ NEW FIELD
+            });
+        }
+        
+    
+        function addDownloadBox() {
+            const firstDb = Object.keys(dbTables)[0] || "";
+            const firstTable = (dbTables[firstDb] || [])[0] || "";
+    
+
+        addDownloadBoxFromData({
+            label: "Download File",
+            type: "download",
+            top: 50,
+            left: 50,
+            action: "",
+            background: false,
+            database: firstDb,
+            table: firstTable,
+            file_format: "csv"
+        });
+        }
+
+        function updateTables(dbSelect) {
+            const box = dbSelect.closest('.button-box');
+            const selectedDb = dbSelect.value;
+            const tableSelect = box.querySelector('.table-select');
+            tableSelect.innerHTML = '';
+            if (dbTables[selectedDb]) {
+                dbTables[selectedDb].forEach(table => {
+                    const option = document.createElement('option');
+                    option.value = table;
+                    option.textContent = table;
+                    tableSelect.appendChild(option);
+                });
+            }
+        }
+
+        function addButtonFromData(data) {
+            const div = document.createElement('div');
+            div.className = 'button-box';
+            div.style.top = data.top + 'px';
+            div.style.left = data.left + 'px';
+        
+            const isLink = data.type === 'link';
+        
+            div.innerHTML = `
+                <input type="text" class="btn-label" value="${data.label || 'New Button'}"><br>
+        
+                <select class="type-selector" onchange="toggleActionInput(this)">
+                    <option value="code" ${!isLink ? 'selected' : ''}>🧠 Run Python Code</option>
+                    <option value="link" ${isLink ? 'selected' : ''}>🔗 Link to Page</option>
+                </select><br>
+        
+                <div class="action-input">
+                    <select class="page-link">
+                        {% for p in pages %}
+                            <option value="{{ p }}" ${data.action === '{{ p }}' ? 'selected' : ''}>{{ p }}</option>
+                        {% endfor %}
+                    </select>
+        
+                    <textarea class="code-input" placeholder="Python code..." style="display: ${isLink ? 'none' : 'block'};">${!isLink ? data.action || '' : ''}</textarea>
+                </div>
+        
+                <label>
+                    <input type="checkbox" class="background-check" ${data.background ? 'checked' : ''}>
+                    Run in background
+                </label>
+        
+                <button onclick="this.parentElement.remove()">❌</button>
+            `;
+        
+            document.getElementById('workspace').appendChild(div);
+        }
+        
+        function addUploadBoxFromData(data) {
+    const config = data.config || {};
+
+    const db = data.database || config.database || '';
+    const table = data.table || config.table || '';
+    const uploadMode = data.upload_mode || config.upload_mode || 'append';
+    const code = data.action || config.code || '';
+
+    const dbOptions = Object.keys(dbTables).map(dbName =>
+        `<option value="${dbName}" ${dbName === db ? 'selected' : ''}>${dbName}</option>`
+    ).join('');
+
+    const tableOptions = (dbTables[db] || []).map(tbl =>
+        `<option value="${tbl}" ${tbl === table ? 'selected' : ''}>${tbl}</option>`
+    ).join('');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = `${data.top}px`;
+    div.style.left = `${data.left}px`;
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="${data.label || 'Upload File'}"><br>
+        <select class="type-selector" disabled>
+            <option value="upload" selected>📤 Upload File</option>
+        </select><br>
+
+        <textarea class="code-input" placeholder="Optional Python code...">${code}</textarea>
+
+        <label>Database:
+            <select class="db-select" name="database" onchange="updateTables(this)">
+                ${dbOptions}
+            </select>
+        </label>
+
+        <label>Table:
+            <select class="table-select" name="table">
+                ${tableOptions}
+            </select>
+        </label>
+
+        <label>Upload Mode:
+            <select class="upload-mode" name="upload_mode">
+                <option value="append" ${uploadMode === 'append' ? 'selected' : ''}>Append to Table</option>
+                <option value="replace" ${uploadMode === 'replace' ? 'selected' : ''}>Overwrite Table</option>
+            </select>
+        </label>
+
+        <input type="file" class="file-input"><br>
+
+        <label><input type="checkbox" class="background-check" ${data.background ? 'checked' : ''}>
+            Run in background
+        </label>
+
+        <button onclick="handleUpload(event)">📤 Upload</button>
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+}
+
+
+        function addDownloadBoxFromData(data) {
+    const config = data.config || {};
+
+    const db = data.database || config.database || '';
+    const table = data.table || config.table || '';
+    const code = data.action || config.code || '';
+    const format = config.file_format || 'csv';
+
+    const dbOptions = Object.keys(dbTables).map(dbName =>
+        `<option value="${dbName}" ${dbName === db ? 'selected' : ''}>${dbName}</option>`
+    ).join('');
+
+    const tableOptions = (dbTables[db] || []).map(tbl =>
+        `<option value="${tbl}" ${tbl === table ? 'selected' : ''}>${tbl}</option>`
+    ).join('');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = data.top + 'px';
+    div.style.left = data.left + 'px';
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="${data.label || 'Download File'}"><br>
+        <select class="type-selector" disabled><option value="download" selected>📥 Download File</option></select><br>
+        <textarea class="code-input" placeholder="Optional Python code...">${code}</textarea>
+
+        <label>Database:
+            <select class="db-select" onchange="updateTables(this)">
+                ${dbOptions}
+            </select>
+        </label>
+
+        <label>Table:
+            <select class="table-select">
+                ${tableOptions}
+            </select>
+        </label>
+
+        <label>
+            <select class="file-format">
+                <option value="csv" ${format === 'csv' ? 'selected' : ''}>CSV</option>
+                <option value="excel" ${format === 'excel' ? 'selected' : ''}>Excel</option>
+            </select> Format
+        </label><br>
+
+        <label><input type="checkbox" class="background-check" ${data.background ? 'checked' : ''}>
+            Run in background
+        </label>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+}
+
+
+        function addAiChatBoxFromData(data) {
+    const config = data.config || {};
+    const db = data.database || config.database || '';
+    const prompt = config.prompt || '';
+    const label = data.label || 'AI Chat';
+    const background = data.background ? 'checked' : '';
+
+    const dbOptions = Object.keys(dbTables).map(dbName =>
+        `<option value="${dbName}" ${dbName === db ? 'selected' : ''}>${dbName}</option>`
+    ).join('');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = (data.top || 0) + 'px';
+    div.style.left = (data.left || 0) + 'px';
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="${label}"><br>
+
+        <select class="type-selector" disabled>
+            <option value="ai_chat" selected>🤖 AI Chat</option>
+        </select><br>
+
+        <textarea class="ai-question" placeholder="Example question...">${prompt}</textarea>
+
+        <label>Upload File 1: <input type="file" class="file1-input"></label><br>
+        <label>Upload File 2: <input type="file" class="file2-input"></label><br>
+
+        <label>Database:
+            <select class="db-select">
+                ${dbOptions}
+            </select>
+        </label><br>
+
+        <label>
+            <input type="checkbox" class="background-check" ${background}>
+            Run in background
+        </label><br>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+}
+
+        function addFormBoxFromData(data) {
+    const config = data.config || {};
+    const db = config.database || '';
+    const table = config.table || '';
+    const keyColumn = config.key_column || 'system_id';
+    const filterMode = config.filter_mode || 'simple';
+    const sqlFilter = config.sql_filter || '';
+    const pythonFilter = config.python_filter || '';
+    const editFields = config.edit_fields || [];
+    const lookupDb = config.lookup_database || '';
+    const lookupTable = config.lookup_table || '';
+    const lookupKeyColumn = config.lookup_key_column || '';
+    const lookupFields = config.lookup_fields || [];
+
+    const dbOptions = Object.keys(dbTables).map(dbName =>
+        `<option value="${dbName}" ${dbName === db ? 'selected' : ''}>${dbName}</option>`
+    ).join('');
+
+    const tableOptions = (dbTables[db] || []).map(tbl =>
+        `<option value="${tbl}" ${tbl === table ? 'selected' : ''}>${tbl}</option>`
+    ).join('');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = (data.top || 0) + 'px';
+    div.style.left = (data.left || 0) + 'px';
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="${data.label || 'Fix Missing Data'}"><br>
+        <select class="type-selector" disabled>
+            <option value="form" selected>📝 Form</option>
+        </select><br>
+
+        <label>Database:
+            <select class="db-select" onchange="updateTablesAndColumns(this)">
+                ${dbOptions}
+            </select>
+        </label><br>
+
+        <label>Table:
+            <select class="table-select" onchange="loadColumnsForTable(this)">
+                ${tableOptions}
+            </select>
+        </label><br>
+
+        <input type="hidden" class="key-column" value="${keyColumn}">
+
+        <label>Filter Mode:
+            <select class="filter-mode" onchange="toggleFilterInput(this)">
+                <option value="simple" ${filterMode === 'simple' ? 'selected' : ''}>Simple Filter</option>
+                <option value="python" ${filterMode === 'python' ? 'selected' : ''}>Python Code</option>
+            </select>
+        </label><br>
+
+        <div class="simple-filter-section" style="${filterMode === 'python' ? 'display:none;' : ''}">
+            <label>Simple SQL Filter:
+                <input type="text" class="sql-filter" value="${sqlFilter}" placeholder="e.g., policy_number IS NULL">
+            </label><br>
+        </div>
+
+        <div class="python-filter-section" style="${filterMode === 'python' ? 'display:block;' : 'display:none;'}">
+            <label>Python Filter Code:<br>
+                <textarea class="python-filter-code" style="width:100%; height:60px;">${pythonFilter}</textarea>
+            </label><br>
+        </div>
+
+        <label>Editable Columns:<br>
+            <div class="column-list" style="max-height: 100px; overflow-y: auto; border: 1px solid #ccc;">
+                (Loading...)
+            </div>
+        </label><br>
+
+        <hr>
+
+        <label>🔎 Lookup Database:
+            <select class="lookup-db-select" onchange="updateLookupTables(this)">
+                <option value="">-- None --</option>
+                ${dbOptions.replace(`value="${lookupDb}"`, `value="${lookupDb}" selected`)}
+            </select>
+        </label><br>
+
+        <label>Lookup Table:
+            <select class="lookup-table-select" onchange="loadLookupColumns(this)">
+                <option value="${lookupTable}" selected>${lookupTable}</option>
+            </select>
+        </label><br>
+
+        <label>Lookup Key Column:
+            <input type="text" class="lookup-key-column" value="${lookupKeyColumn}" placeholder="Optional">
+        </label><br>
+
+        <label>Lookup Fields:<br>
+            <div class="lookup-column-list" style="max-height: 100px; overflow-y: auto; border: 1px solid #ccc;">
+                ${lookupFields.map(field => `<label><input type="checkbox" value="${field}" checked> ${field}</label><br>`).join('')}
+            </div>
+        </label><br>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+
+    // ✅ Fix: force db+table repopulation and column loading
+    const dbSelect = div.querySelector('.db-select');
+    const tableSelect = div.querySelector('.table-select');
+    const columnListDiv = div.querySelector('.column-list');
+
+    dbSelect.value = db;
+    updateTablesAndColumns(dbSelect);
+
+    // Load column checkboxes properly with matching saved `editFields`
+    tableSelect.value = table;
+
+    fetch(`/get_table_columns?db=${encodeURIComponent(db)}&table=${encodeURIComponent(table)}`)
+        .then(res => res.json())
+        .then(data => {
+            columnListDiv.innerHTML = '';
+
+            if (data.columns) {
+                data.columns.forEach(col => {
+                    const checked = editFields.includes(col);
+                    const label = document.createElement('label');
+                    label.innerHTML = `<input type="checkbox" value="${col}" ${checked ? 'checked' : ''}> ${col}`;
+                    columnListDiv.appendChild(label);
+                    columnListDiv.appendChild(document.createElement('br'));
+                });
+            } else {
+                columnListDiv.innerHTML = 'No columns found';
+            }
+        })
+        .catch(err => {
+            console.error("Failed to load columns:", err);
+            columnListDiv.innerHTML = '❌ Error loading columns';
+        });
+}
+
+
+        function updateLookupTables(select) {
+    const box = select.closest('.button-box');
+    const lookupDb = select.value;
+    const lookupTableSelect = box.querySelector('.lookup-table-select');
+    lookupTableSelect.innerHTML = '<option value="">-- Select --</option>';
+
+    if (dbTables[lookupDb]) {
+        dbTables[lookupDb].forEach(tbl => {
+            const option = document.createElement('option');
+            option.value = tbl;
+            option.textContent = tbl;
+            lookupTableSelect.appendChild(option);
+        });
+    }
+}
+
+        function loadLookupColumns(select) {
+    const box = select.closest('.button-box');
+    const lookupDb = box.querySelector('.lookup-db-select')?.value || '';
+    const lookupTable = select.value || '';
+    const lookupColumnList = box.querySelector('.lookup-column-list');
+
+    lookupColumnList.innerHTML = 'Loading...';
+
+    if (!lookupDb || !lookupTable) {
+        lookupColumnList.innerHTML = '❌ No lookup database or table selected.';
+        return;
+    }
+
+    fetch(`/get_table_columns?db=${encodeURIComponent(lookupDb)}&table=${encodeURIComponent(lookupTable)}`)
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to fetch lookup columns');
+            return res.json();
+        })
+        .then(data => {
+            lookupColumnList.innerHTML = '';
+
+            if (data.columns && data.columns.length > 0) {
+                data.columns.forEach(col => {
+                    const label = document.createElement('label');
+                    label.style.display = 'block';
+                    label.innerHTML = `<input type="checkbox" value="${col}"> ${col}`;
+                    lookupColumnList.appendChild(label);
+                });
+            } else {
+                lookupColumnList.innerHTML = '❌ No columns found.';
+            }
+        })
+        .catch(err => {
+            console.error("❌ Error loading lookup columns:", err);
+            lookupColumnList.innerHTML = '❌ Error loading columns';
+        });
+}
+    
+        function addMiniAnalytics() {
+    const dbOptions = Object.keys(dbTables).map(db => `<option value="${db}">${db}</option>`).join('');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = '50px';
+    div.style.left = '50px';
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="Mini Analytics"><br>
+
+        <select class="type-selector" disabled>
+            <option value="mini_analytics" selected>📊 Mini Analytics</option>
+        </select><br>
+
+        <label>Database:
+            <select class="db-select" onchange="updateTables(this)">
+                ${dbOptions}
+            </select>
+        </label><br>
+
+        <label>Table:
+            <select class="table-select">
+                <option value="">-- Choose Table --</option>
+            </select>
+        </label><br>
+
+        <label>Python Code:<br>
+            <textarea class="code-input" placeholder="e.g., count = df['id_number'].isna().sum()" style="width:100%; height:60px;"></textarea>
+        </label><br>
+
+        <label>
+            <input type="checkbox" class="show-chart-check">
+            Show Pie Chart
+        </label><br>
+
+        <label>Refresh Interval (seconds):
+            <input type="number" class="refresh-interval" value="30" min="5" style="width:60px;">
+        </label><br>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+}
+
+        function addMiniAnalyticsFromData(data) {
+    const config = data.config || {};
+    const db = config.database || '';
+    const table = config.table || '';
+    const code = config.code || '';
+    const refreshInterval = config.refresh_interval || 30;
+    const showChart = config.show_chart || false;
+
+    const dbOptions = Object.keys(dbTables).map(dbName =>
+        `<option value="${dbName}" ${dbName === db ? 'selected' : ''}>${dbName}</option>`
+    ).join('');
+
+    const tableOptions = (dbTables[db] || []).map(tbl =>
+        `<option value="${tbl}" ${tbl === table ? 'selected' : ''}>${tbl}</option>`
+    ).join('');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = (data.top || 0) + 'px';
+    div.style.left = (data.left || 0) + 'px';
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="${data.label || 'Mini Analytics'}"><br>
+
+        <select class="type-selector" disabled>
+            <option value="mini_analytics" selected>📊 Mini Analytics</option>
+        </select><br>
+
+        <label>Database:
+            <select class="db-select" onchange="updateTables(this)">
+                ${dbOptions}
+            </select>
+        </label><br>
+
+        <label>Table:
+            <select class="table-select">
+                ${tableOptions}
+            </select>
+        </label><br>
+
+        <label>Python Code:<br>
+            <textarea class="code-input" placeholder="e.g., count = df['id'].isna().sum()" style="width:100%; height:60px;">${code}</textarea>
+        </label><br>
+
+        <label>
+            <input type="checkbox" class="show-chart-check" ${showChart ? 'checked' : ''}>
+            Show Pie Chart
+        </label><br>
+
+        <label>Refresh Interval (seconds):
+            <input type="number" class="refresh-interval" value="${refreshInterval}" min="5" style="width:60px;">
+        </label><br>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+
+    // ✅ Ensure correct database -> table loading
+    const dbSelect = div.querySelector('.db-select');
+    const tableSelect = div.querySelector('.table-select');
+
+    dbSelect.value = db;
+    updateTables(dbSelect);
+
+    setTimeout(() => {
+        tableSelect.value = table;
+    }, 0);
+}
+
+
+
+        function handleUpload(event) {
+    event.preventDefault();
+
+    const box = event.target.closest('.button-box');
+    const fileInput = box.querySelector('.file-input');
+    const file = fileInput?.files[0];
+    const db = box.querySelector('.db-select')?.value;
+    const table = box.querySelector('.table-select')?.value;
+    const uploadMode = box.querySelector('.upload-mode')?.value || 'append';
+    const code = box.querySelector('.code-input')?.value || '';
+    const background = box.querySelector('.background-check')?.checked ? 'true' : 'false';
+
+    if (!file) {
+        alert("Please select a file.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('database', db);
+    formData.append('table', table);
+    formData.append('upload_mode', uploadMode);
+    formData.append('code', code);
+    formData.append('background', background);
+
+    fetch('/upload_data', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            alert(background === 'true'
+                ? "✅ Upload started in background."
+                : "✅ File uploaded successfully.");
+        } else {
+            alert("❌ Upload failed: " + data.message);
+        }
+    })
+    .catch(err => {
+        console.error("❌ Upload error:", err);
+        alert("❌ Upload error.");
+    });
+}
+
+
+        // ✅ loading layout and workspace height
+        {% if workspace_height %}
+            document.getElementById('workspace').style.minHeight = '{{ workspace_height }}px';
+        {% endif %}
+
+        {% for item in layout %}
+            {% if item.type == 'upload' %}
+        addUploadBoxFromData({{ item | tojson }});
+            {% elif item.type == 'download' %}
+        addDownloadBoxFromData({{ item | tojson }});
+            {% elif item.type == 'ai_chat' %}
+        addAiChatBoxFromData({{ item | tojson }});
+            {% elif item.type == 'form' %}
+        addFormBoxFromData({{ item | tojson }});
+            {% elif item.type == 'mini_analytics' %}
+        addMiniAnalyticsFromData({{ item | tojson }});
+            {% else %}
+        addButtonFromData({{ item | tojson }});
+            {% endif %}
+        {% endfor %}
+
+
+    </script>
+    
+</body>
+</html>

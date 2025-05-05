@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><title>User List</title></head>
+<body>
+    <h2>👥 All Users</h2>
+    <table border="1">
+        <tr><th>ID</th><th>Username</th><th>Role</th><th>Action</th></tr>
+        {% for user in users %}
+        <tr>
+            <td>{{ user[0] }}</td>
+            <td>{{ user[1] }}</td>
+            <td>{{ user[2] }}</td>
+            <td>
+                <form method="POST" action="{{ url_for('users.delete_user', user_id=user[0]) }}">
+                    <button type="submit" onclick="return confirm('Delete user?')">🗑️ Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    <br>
+    <a href="{{ url_for('users.create_user') }}">➕ Create New User</a> |
+    <a href="{{ url_for('developer.developer_dashboard') }}">⬅ Back to Developer</a>
+</body>
+</html>

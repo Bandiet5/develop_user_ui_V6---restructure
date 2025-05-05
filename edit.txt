@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit: {{ page_name }}</title>
+    <style>
+        .button-box {
+            position: absolute;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #f0f0f0;
+            cursor: move;
+            width: 220px;
+        }
+        .button-box textarea, .button-box select, .button-box input[type="text"] {
+            width: 100%;
+        }
+        .button-box label {
+            display: block;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Editing: {{ page_name }}</h2>
+
+    <div id="workspace" style="width: 100%; height: 80vh; border: 1px dashed gray; position: relative;">
+        {% for item in layout %}
+        <div class="button-box" style="top: {{ item.top }}px; left: {{ item.left }}px;">
+            <input type="text" class="btn-label" value="{{ item.label }}"><br>
+            <select class="type-selector" onchange="toggleActionInput(this)">
+                <option value="code" {% if item.type == 'code' %}selected{% endif %}>🧠 Run Python Code</option>
+                <option value="link" {% if item.type == 'link' %}selected{% endif %}>🔗 Link to Page</option>
+            </select><br>
+            <div class="action-input">
+                {% if item.type == 'link' %}
+                    <select class="page-link">
+                        {% for p in pages %}
+                            <option value="{{ p }}" {% if item.action == p %}selected{% endif %}>{{ p }}</option>
+                        {% endfor %}
+                    </select>
+                {% else %}
+                    <textarea class="code-input" placeholder="Python code...">{{ item.action }}</textarea>
+                {% endif %}
+            </div>
+            <label><input type="checkbox" class="background-check" {% if item.background %}checked{% endif %}> Run in background</label>
+            <button onclick="this.parentElement.remove()">❌</button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button onclick="addButton()">➕ Add Button</button>
+    <button onclick="addUploadBox()">📤 Upload File to Table</button>
+    <button onclick="addDownloadBox()">📥 Download Table to File</button>
+
+    <button onclick="saveLayout()">💾 Save</button>
+
+    <br><br>
+    <a href="{{ url_for('developer.developer_dashboard') }}">
+        <button>⬅️ Back to Developer Dashboard</button>
+    </a>
+
+    <script>
+        let dragged = null, offsetX = 0, offsetY = 0;
+    
+        // 🟡 Drag-and-drop movement
+        document.addEventListener('mousedown', e => {
+            const box = e.target.closest('.button-box');
+            if (box) {
+                dragged = box;
+                offsetX = e.offsetX;
+                offsetY = e.offsetY;
+            }
+        });
+    
+        document.addEventListener('mousemove', e => {
+            if (dragged) {
+                dragged.style.left = (e.pageX - offsetX) + 'px';
+                dragged.style.top = (e.pageY - offsetY) + 'px';
+            }
+        });
+    
+        document.addEventListener('mouseup', () => dragged = null);
+    
+        // ➕ Add Basic Button (code/link)
+        function addButton() {
+            const div = document.createElement('div');
+            div.className = 'button-box';
+            div.style.top = '50px';
+            div.style.left = '50px';
+            div.innerHTML = `
+                <input type="text" class="btn-label" value="New Button"><br>
+                <select class="type-selector" onchange="toggleActionInput(this)">
+                    <option value="code">🧠 Run Python Code</option>
+                    <option value="link">🔗 Link to Page</option>
+                </select><br>
+                <div class="action-input">
+                    <textarea class="code-input" placeholder="Python code..."></textarea>
+                </div>
+                <label><input type="checkbox" class="background-check"> Run in background</label>
+                <button onclick="this.parentElement.remove()">❌</button>
+            `;
+            document.getElementById('workspace').appendChild(div);
+        }
+    
+        // 🔁 Handle type switch between code vs link
+        function toggleActionInput(select) {
+            const container = select.parentElement.querySelector('.action-input');
+            const selected = select.value;
+    
+            if (selected === 'link') {
+                container.innerHTML = `
+                    <select class="page-link">
+                        {% for p in pages %}
+                            <option value="{{ p }}">{{ p }}</option>
+                        {% endfor %}
+                    </select>
+                `;
+            } else {
+                container.innerHTML = `
+                    <textarea class="code-input" placeholder="Python code..."></textarea>
+                `;
+            }
+        }
+    
+        // 💾 Save page layout
+        function saveLayout() {
+            const boxes = document.querySelectorAll('.button-box');
+            const layout = [];
+        
+            boxes.forEach(box => {
+                const type = box.querySelector('.type-selector')?.value || 'code';
+                const label = box.querySelector('.btn-label')?.value || '';
+                const background = box.querySelector('.background-check')?.checked || false;
+        
+                let action = '';
+                let database = '';
+                let table = '';
+                let file_format = '';
+        
+                if (type === 'link') {
+                    action = box.querySelector('.page-link')?.value || '';
+                } else if (type === 'upload' || type === 'download') {
+                    action = box.querySelector('.code-input')?.value || '';
+                    database = box.querySelector('.db-select')?.value || '';
+                    table = box.querySelector('.table-select')?.value || '';
+                    file_format = box.querySelector('.file-format')?.value || 'csv';  // default to CSV if not present
+                } else {
+                    action = box.querySelector('.code-input')?.value || '';
+                }
+        
+                layout.push({
+                    label,
+                    type,
+                    action,
+                    background,
+                    database: database || undefined,
+                    table: table || undefined,
+                    file_format: file_format || undefined,
+                    top: parseInt(box.style.top) || 0,
+                    left: parseInt(box.style.left) || 0
+                });
+            });
+        
+            fetch("{{ url_for('edit_page.save_page', page_name=page_name) }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ layout })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to save');
+                return res.json();
+            })
+            .then(() => alert("✅ Layout saved!"))
+            .catch(err => {
+                console.error("Save failed:", err);
+                alert("❌ Save failed.");
+            });
+        }
+        
+    
+        // Build dropdowns
+    function buildDatabaseTableDropdowns() {
+        return `
+            <select class="db-select">
+                {% for db in databases %}
+                    <option value="{{ db }}">{{ db }}</option>
+                {% endfor %}
+            </select>
+            <select class="table-select">
+                {% for db, tables in db_tables.items() %}
+                    {% for t in tables %}
+                        <option value="{{ t }}">{{ t }}</option>
+                    {% endfor %}
+                {% endfor %}
+            </select>
+        `;
+    }
+
+    const dbTables = {{ db_tables | tojson }};
+
+    function addUploadBox() {
+        const div = document.createElement('div');
+        div.className = 'button-box';
+        div.style.top = '50px';
+        div.style.left = '50px';
+
+        const dbOptions = Object.keys(dbTables).map(db =>
+            `<option value="${db}">${db}</option>`).join('');
+
+        const firstDb = Object.keys(dbTables)[0] || '';
+        const tableOptions = (dbTables[firstDb] || []).map(tbl =>
+            `<option value="${tbl}">${tbl}</option>`).join('');
+
+        div.innerHTML = `
+            <input type="text" class="btn-label" value="Upload File"><br>
+            <select class="type-selector" disabled>
+                <option value="upload" selected>📤 Upload File</option>
+            </select><br>
+            <textarea class="code-input" placeholder="Optional Python code..."></textarea>
+            <label>Database:
+                <select class="db-select" onchange="updateTables(this)">
+                    ${dbOptions}
+                </select>
+            </label>
+            <label>Table:
+                <select class="table-select">
+                    ${tableOptions}
+                </select>
+            </label>
+            <input type="file" class="file-input"><br>
+            <label><input type="checkbox" class="background-check"> Run in background</label>
+            <button onclick="this.parentElement.remove()">❌</button>
+        `;
+        document.getElementById('workspace').appendChild(div);
+    }
+
+    function updateTables(dbSelect) {
+        const box = dbSelect.closest('.button-box');
+        const selectedDb = dbSelect.value;
+        const tableSelect = box.querySelector('.table-select');
+        tableSelect.innerHTML = '';
+
+        if (dbTables[selectedDb]) {
+            dbTables[selectedDb].forEach(table => {
+                const option = document.createElement('option');
+                option.value = table;
+                option.textContent = table;
+                tableSelect.appendChild(option);
+            });
+        }
+    }
+
+    function addDownloadBox() {
+        const div = document.createElement('div');
+        div.className = 'button-box';
+        div.style.top = '50px';
+        div.style.left = '50px';
+        div.innerHTML = `
+            <input type="text" class="btn-label" value="Download File"><br>
+            <select class="type-selector" disabled>
+                <option value="download" selected>📥 Download File</option>
+            </select><br>
+            <textarea class="code-input" placeholder="Optional Python code..."></textarea>
+            ${buildDatabaseTableDropdowns()}
+            <label>
+                <select class="file-format">
+                    <option value="csv" selected>CSV</option>
+                    <option value="excel">Excel</option>
+                </select>
+                Format
+            </label><br>
+            <label><input type="checkbox" class="background-check"> Run in background</label>
+            <button onclick="this.parentElement.remove()">❌</button>
+        `;
+        document.getElementById('workspace').appendChild(div);
+    }
+    
+    
+    </script>
+    
+</body>
+</html>

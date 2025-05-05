@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><title>Create User</title></head>
+<body>
+    <h2>➕ Create New User</h2>
+    <form method="POST">
+        <label>Username:</label><br>
+        <input type="text" name="username" required><br><br>
+
+        <label>Password:</label><br>
+        <input type="password" name="password" required><br><br>
+
+        <label>Role:</label><br>
+        <select name="role" required>
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+        </select><br><br>
+
+        <input type="submit" value="Create User">
+    </form>
+
+    <br>
+    <a href="{{ url_for('users.manage_users') }}">👥 Back to User List</a>
+</body>
+</html>

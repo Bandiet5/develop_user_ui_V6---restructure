@@ -1,0 +1,10 @@
+missing = df['policy_number'].isna().sum()
+not_missing = df['policy_number'].notna().sum()
+result = f"Missing: {missing}, Not Missing: {not_missing}"
+chart = {
+    "Missing": int(missing),
+    "Not Missing": int(not_missing)
+}
+
+
+hoe di functions moet lyk

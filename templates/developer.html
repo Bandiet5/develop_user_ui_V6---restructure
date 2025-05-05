@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Developer Dashboard</title>
+</head>
+<body>
+    <h1>👨‍💻 Developer Dashboard</h1>
+    <p>Welcome, {{ session.username }}!</p>
+
+    <h3>Create a New Page</h3>
+    <form action="{{ url_for('developer.create_page') }}" method="post">
+        <input type="text" name="page_name" placeholder="Page name" required>
+        <button type="submit">➕ Create</button>
+    </form>
+
+    <h3>Existing Pages</h3>
+    <ul>
+        {% for page in pages %}
+            <li>
+                <a href="{{ url_for('edit_page.edit_page', page_name=page) }}">{{ page }}</a>
+                <form action="{{ url_for('developer.delete_page', page_name=page) }}" method="post" style="display:inline;">
+                    <button type="submit" onclick="return confirm('Delete page {{ page }}?')">🗑️</button>
+                </form>
+            </li>
+        {% else %}
+            <li>No pages yet.</li>
+        {% endfor %}
+    </ul>
+
+
+    <h3>🔐 User Management</h3>
+    <form action="{{ url_for('users.manage_users') }}">
+        <button type="submit">👥 Manage Users</button>
+    </form>
+
+    <h3>📁 Manage Database</h3>
+    <form action="{{ url_for('database.database_dashboard') }}">
+        <button type="submit">🛠 Open Database Manager</button>
+    </form>    
+
+    <p><a href="{{ url_for('logout') }}">🔒 Logout</a></p>
+</body>
+</html>

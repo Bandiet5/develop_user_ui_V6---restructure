@@ -1,0 +1,91 @@
+/* editor.css */
+
+/* 🖥 General Page Layout */
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #fdfdfd;
+}
+
+/* 📋 Workspace Area */
+#workspace {
+    width: 100%;
+    min-height: 600px; /* ⬅️ Flexible min-height, not fixed vh */
+    position: relative;
+    border: 1px dashed gray;
+    margin-bottom: 40px; /* ⬅️ Space for bottom buttons */
+    background-image: 
+        linear-gradient(to right, #eee 1px, transparent 1px),
+        linear-gradient(to bottom, #eee 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-position: 0 0;
+    overflow: visible; /* ⬅️ Allow boxes to overflow nicely */
+}
+
+/* 📦 Draggable Button Boxes */
+.button-box {
+    position: absolute;
+    padding: 10px;
+    border: 1px solid #ccc;
+    background: #f9f9f9;
+    border-radius: 6px;
+    cursor: grab;
+    min-width: 220px;
+    max-width: 400px; /* 🛡 Limit very big boxes */
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s, width 0.2s;
+}
+
+.button-box:active {
+    cursor: grabbing;
+    box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Form Elements inside the box */
+.button-box label {
+    display: block;
+    margin-top: 5px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.button-box textarea,
+.button-box select,
+.button-box input[type="text"] {
+    width: 100%;
+    margin-top: 4px;
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box; /* ✅ Fix padding issues */
+}
+
+/* 🎯 Normal Buttons (Save, Add, etc) */
+button {
+    margin: 6px 4px 0 0;
+    padding: 8px 14px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    display: inline-block;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+/* 🔽 Bottom Button Row (Save, Add Form, etc) */
+.bottom-buttons {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap; /* ✅ If screen too small, wrap buttons */
+    gap: 8px;
+    justify-content: flex-start;
+}

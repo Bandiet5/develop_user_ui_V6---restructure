@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>User Page - {{ page_name }}</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
+<body>
+    <h1>👋 Welcome, {{ session.username }}</h1>
+    <h3>You're viewing the page: <strong>{{ page_name }}</strong></h3>
+    <!-- Add this block inside your for-loop where you render blocks -->
+    {% set layout_items = layout.layout if layout.layout is defined else layout %}
+    <div class="workspace">
+        {% for item in layout_items %}
+            {% set config = item.config or {} %}
+            <div class="button-box"
+                style="top: {{ item.top }}px; left: {{ item.left }}px; width: {{ item.width | default(220) }}px;"
+                data-type="{{ item.type }}"
+                data-config='{{ config | tojson }}'
+                data-background="{{ item.background | default(false) | lower }}"
+                data-refresh-interval="{{ config.refresh_interval | default(30) }}"
+                data-code="{{ config.code | e }}"
+                data-db="{{ config.database | default('') }}"
+                data-table="{{ config.table | default('') }}"
+                data-upload-mode="{{ config.upload_mode | default('append') }}"
+                data-file-format="{{ config.file_format | default('csv') }}"
+                data-ai-question="{{ config.prompt | default('') }}"
+                data-show-chart="{{ config.show_chart | default(false) | lower }}"
+            >
+                <div><strong>{{ item.label }}</strong></div>
+    
+                {% if item.type == 'link' %}
+                    <a href="/page/{{ config.target }}"><button>🔗 Go to {{ config.target }}</button></a>
+    
+                {% elif item.type == 'upload' %}
+                    <form onsubmit="return handleUpload(event, this)">
+                        <input type="file" name="file" required><br>
+                        <button type="submit">📤 Upload</button>
+                    </form>
+    
+                {% elif item.type == 'download' %}
+                    <button onclick="handleButton(null, null, this)">📥 Download</button>
+    
+                {% elif item.type == 'ai_chat' %}
+                    <form onsubmit="handleAiChat(event, this)">
+                        <textarea name="prompt" placeholder="Ask your question..." rows="4">{{ config.prompt or '' }}</textarea><br>
+                        <label><strong>Upload File 1:</strong> <input type="file" name="file1"></label><br>
+                        <label><strong>Upload File 2 (optional):</strong> <input type="file" name="file2"></label><br>
+    
+                        {% if config.database %}
+                            <input type="hidden" name="database" value="{{ config.database }}">
+                            <label><strong>Select Table(s):</strong><br>
+                                <select name="tables" multiple size="3" style="width:100%">
+                                    {% for tbl in db_tables.get(config.database, []) %}
+                                        <option value="{{ tbl }}">{{ tbl }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small>(Hold Ctrl or Cmd to select multiple)</small>
+                            </label><br>
+                        {% endif %}
+    
+                        <button type="submit">🤖 Ask AI</button>
+                    </form>
+                    <div class="ai-result"></div>
+    
+                {% elif item.type == 'form' %}
+                    <button onclick="loadFormData(this)">📋 Load Form</button>
+                    <div class="form-container"></div>
+    
+                {% elif item.type == 'mini_analytics' %}
+                    <button onclick="handleButton(null, null, this)">📊 Refresh</button>
+                    <div class="mini-analytics-result" style="margin-top:8px; font-size:14px; background:#fafafa; padding:6px; border:1px solid #ddd; border-radius:4px;">
+                        (No data yet)
+                    </div>
+    
+                {% elif item.type == 'code' %}
+                    <button onclick="handleButton(`{{ config.code | e }}`, {{ item.background | default(false) | lower }}, this)">
+                        ▶️ Run
+                    </button>
+    
+                {% else %}
+                    <button onclick="handleButton(`{{ config.code | e }}`, {{ item.background | default(false) | lower }}, this)">
+                        ▶️ Run
+                    </button>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    
+    
+
+    {% if not layout %}
+        <p>No layout yet. Please ask the developer to add components to this page.</p>
+    {% endif %}
+
+    <p><a href="{{ url_for('logout') }}" class="logout">🔒 Logout</a></p>
+
+    <hr>
+    <div class="debug-box">
+        <strong>🛠 Debug Info</strong><br>
+        Session: {{ session | tojson(indent=2) }}<br>
+        Page: {{ page_name }}<br>
+        Layout:<br>{{ layout | tojson(indent=2) }}
+    </div>
+
+    <script>
+        function handleButton(_, __, buttonElement) {
+    const box = buttonElement.closest('.button-box');
+    const type = box.getAttribute('data-type') || 'code';
+    const runInBackground = box.getAttribute('data-background') === 'true';
+    const config = JSON.parse(box.getAttribute('data-config') || '{}');
+    const originalText = buttonElement.textContent;
+    buttonElement.textContent = "Running...";
+
+    // Special case for download (to trigger actual download file)
+    if (type === 'download') {
+        const db = config.database || '';
+        const table = config.table || '';
+        const code = config.code || '';
+        const file_format = config.file_format || 'csv';
+
+        if (!db || !table) {
+            alert('❌ Missing database or table for download!');
+            buttonElement.textContent = originalText;
+            return;
+        }
+
+        fetch('/download_data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                database: db,
+                table: table,
+                code: code,
+                file_format: file_format,
+                background: runInBackground
+            })
+        })
+        .then(res => {
+            if (res.status === 200 && !runInBackground) {
+                return res.blob().then(blob => {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `download.${file_format === 'excel' ? 'xlsx' : 'csv'}`;
+                    a.click();
+                    buttonElement.textContent = "✅ Done!";
+                });
+            } else {
+                buttonElement.textContent = "✅ Scheduled!";
+            }
+        })
+        .catch(err => {
+            console.error("Download failed:", err);
+            buttonElement.textContent = '❌ Failed';
+        });
+
+        return;
+    }
+
+    // 🧠 Default case: all other buttons use /run_action
+    fetch('/run_action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            type,
+            config,
+            background: runInBackground
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log("Action response:", data);
+        buttonElement.textContent = data.status === 'ok' ? '✅ Done!' : '⚠️ Error';
+
+        // auto-download if response includes download link
+        if (data.download) {
+            const a = document.createElement('a');
+            a.href = data.download;
+            a.download = '';
+            a.click();
+        }
+
+        setTimeout(() => buttonElement.textContent = originalText, 1500);
+    })
+    .catch(err => {
+        console.error("Run action failed:", err);
+        buttonElement.textContent = '❌ Failed';
+        setTimeout(() => buttonElement.textContent = originalText, 1500);
+    });
+}
+
+        function handleUpload(event, formElement) {
+    event.preventDefault();
+
+    const box = formElement.closest('.button-box');
+    const fileInput = formElement.querySelector('input[name="file"]');
+    const file = fileInput?.files[0];
+    const config = JSON.parse(box.dataset.config || '{}');
+
+    if (!file) {
+        alert("❌ No file selected.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("database", config.database || '');
+    formData.append("table", config.table || '');
+    formData.append("upload_mode", config.upload_mode || 'append');
+    formData.append("code", config.code || '');
+    formData.append("background", box.getAttribute("data-background") === "true");
+
+    fetch("/upload_data", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "ok") {
+            alert(config.background ? "✅ Upload scheduled." : "✅ File uploaded.");
+        } else {
+            alert("❌ Upload error: " + data.message);
+        }
+    })
+    .catch(err => {
+        console.error("❌ Upload failed:", err);
+        alert("❌ Upload failed.");
+    });
+}
+
+
+
+
+        function handleAiChat(e, formElement) {
+            e.preventDefault();
+
+            const formData = new FormData(formElement);
+            const prompt = formData.get('prompt') || '';
+            const container = formElement.closest('.button-box');
+
+            if (!prompt.trim()) {
+                alert("Please enter a question.");
+                return false;
+            }
+
+            const file1 = formElement.querySelector('input[name="file1"]')?.files[0];
+            const file2 = formElement.querySelector('input[name="file2"]')?.files[0];
+            const tablesSelect = formElement.querySelector('select[name="tables"]');
+
+            if (tablesSelect) {
+                const selectedTables = Array.from(tablesSelect.selectedOptions).map(opt => opt.value);
+        
+                if (!file1 && !file2 && selectedTables.length === 0) {
+                    showAiResult(container, '❌ Error: Please select one or more tables.', true);
+                    return false;
+                }
+
+                if (selectedTables.length > 0) {
+                    formData.append('tables', selectedTables);
+                }
+            }
+
+            // ✅ Always run the fetch
+            showAiResult(container, '⏳ Thinking... Please wait.', false);
+
+            fetch('/ai_chat', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    let msg = `<strong>🤖 AI Response:</strong><br>${data.message}`;
+                    if (data.code) {
+                        msg += `<details><summary>🧠 Generated Code</summary><pre>${data.code}</pre></details>`;
+                    }
+                    if (data.download) {
+                        msg += `<br><a href="${data.download}" download><button>⬇️ Download Excel</button></a>`;
+                    }
+                    showAiResult(container, msg, false);
+                } else {
+                    showAiResult(container, `❌ Error: ${data.message}`, true);
+                }
+            })
+            .catch(err => {
+                console.error("❌ AI Chat failed:", err);
+                showAiResult(container, '❌ Request failed.', true);
+            });
+
+            return false;
+        }
+
+
+
+        // ✅ Helper to inject or update the result box
+        function showAiResult(container, html, isError) {
+            let resultBox = container.querySelector('.ai-result');
+            if (!resultBox) {
+                resultBox = document.createElement('div');
+                resultBox.className = 'ai-result';
+                container.appendChild(resultBox);
+            }
+            resultBox.innerHTML = html;
+            resultBox.style.color = isError ? 'red' : '';
+        }
+
+
+        window.addEventListener('load', () => {
+    const workspace = document.querySelector('.workspace');
+    const boxes = document.querySelectorAll('.button-box');
+    let maxBottom = 0;
+
+    boxes.forEach(box => {
+        const bottom = box.offsetTop + box.offsetHeight;
+        if (bottom > maxBottom) maxBottom = bottom;
+    });
+
+    workspace.style.height = (maxBottom + 40) + 'px';
+
+    // ✅ Auto-run mini analytics
+    const miniAnalyticsBoxes = document.querySelectorAll('.button-box[data-type="mini_analytics"]');
+    miniAnalyticsBoxes.forEach(box => {
+        const refreshInterval = parseInt(box.getAttribute('data-refresh-interval')) || 30;
+        runMiniAnalytics(box);
+        setInterval(() => runMiniAnalytics(box), refreshInterval * 1000);
+    });
+});
+
+         
+        
+        
+        async function loadFormData(button) {
+    const box = button.closest('.button-box');
+    const container = box.querySelector('.form-container');
+    container.textContent = "⏳ Loading...";
+
+    let config;
+    try {
+        config = JSON.parse(box.dataset.config || '{}');
+    } catch (err) {
+        container.textContent = "❌ Invalid config format.";
+        return;
+    }
+
+    const keyColumn = config.key_column || 'system_id';
+
+    try {
+        const res = await fetch('/run_action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'form',
+                config,
+                background: false
+            })
+        });
+
+        const data = await res.json();
+        if (data.status !== 'ok') {
+            container.textContent = "❌ Error: " + (data.message || "Unknown error");
+            return;
+        }
+
+        const rows = data.rows || [];
+        const lookupData = data.lookup?.data || [];
+        const lookupKey = data.lookup?.key_column || '';
+        const lookupFields = data.lookup?.fields || [];
+
+        if (rows.length === 0) {
+            container.textContent = "❌ No rows returned.";
+            return;
+        }
+
+        container.innerHTML = "";
+
+        const form = document.createElement('form');
+        form.onsubmit = (e) => submitFormUpdate(e, form, config.database, config.table, keyColumn);
+
+        const table = document.createElement('table');
+        table.className = 'data-table';
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+
+        const fields = ['system_id', ...(config.edit_fields || []).filter(f => f !== 'system_id')];
+
+        const headerRow = document.createElement('tr');
+        fields.forEach(field => {
+            const th = document.createElement('th');
+            th.textContent = field;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+
+        rows.forEach(row => {
+            const tr = document.createElement('tr');
+            fields.forEach(field => {
+                const td = document.createElement('td');
+                const inputWrapper = document.createElement('div');
+                inputWrapper.className = 'input-select-container';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = `${field}_${row[keyColumn]}`;
+                input.value = row?.[field] ?? '';
+                inputWrapper.appendChild(input);
+
+                // Normalize and match keys
+                if (lookupData.length > 0 && lookupFields.includes(field) && lookupKey && row[lookupKey]) {
+                    const rowKey = String(row[lookupKey]).trim();
+                    const matches = lookupData.filter(entry =>
+                        String(entry?.[lookupKey]).trim() === rowKey
+                    );
+
+                    const values = [...new Set(matches.map(m => m[field]).filter(Boolean))];
+
+                    if (values.length > 0) {
+                        const select = document.createElement('select');
+                        select.innerHTML = `<option value="">-- Choose --</option>` +
+                            values.map(v => `<option value="${v}" ${v === input.value ? 'selected' : ''}>${v}</option>`).join('');
+                        select.addEventListener('change', () => {
+                            input.value = select.value;
+                        });
+                        inputWrapper.appendChild(select);
+                    }
+                }
+
+                td.appendChild(inputWrapper);
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        form.appendChild(table);
+
+        const saveBtn = document.createElement('button');
+        saveBtn.type = 'submit';
+        saveBtn.textContent = "💾 Save Changes";
+        saveBtn.style.marginTop = "10px";
+        form.appendChild(saveBtn);
+
+        container.appendChild(form);
+
+    } catch (err) {
+        console.error("❌ Load error:", err);
+        container.textContent = "❌ Load failed.";
+    }
+}
+
+
+        async function submitFormUpdate(e, form, db, table, keyColumn) {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            const payload = {};
+
+            for (const [key, value] of formData.entries()) {
+                payload[key] = value;
+            }
+
+            const res = await fetch('/submit_form_update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ db, table, key_column: keyColumn, updates: payload })
+            });
+
+            const data = await res.json();
+            if (data.status === 'ok') {
+                alert("✅ Updates saved!");
+            } else {
+                alert("❌ Update failed: " + (data.message || "Unknown error"));
+            }
+        }
+
+
+
+        async function runMiniAnalytics(buttonBox) {
+    const db = buttonBox.getAttribute('data-db') || '';
+    const table = buttonBox.getAttribute('data-table') || '';
+    const code = buttonBox.getAttribute('data-code') || '';
+    const returnChart = buttonBox.getAttribute('data-show-chart') === 'true';  // ✅ FIX HERE!
+
+    if (!db || !table || !code) {
+        console.error('Missing database, table, or code.');
+        return;
+    }
+
+    const resultBox = buttonBox.querySelector('.mini-analytics-result');
+    if (resultBox) {
+        resultBox.innerHTML = "⏳ Running...";
+    }
+
+    try {
+        const res = await fetch('/run_mini_analytics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                database: db,
+                table: table,
+                code: code,
+                return_chart: returnChart  // ✅ dynamic based on button
+            })
+        });
+
+        const data = await res.json();
+        if (data.status !== 'ok') {
+            if (resultBox) resultBox.textContent = "❌ " + (data.message || "Error");
+            return;
+        }
+
+        if (resultBox) {
+            resultBox.innerHTML = `<strong>Result:</strong> ${data.result || ''}<br>`;
+
+            if (returnChart && data.chart) {   // ✅ Only if user wants chart!
+                let canvas = resultBox.querySelector('canvas');
+                if (!canvas) {
+                    canvas = document.createElement('canvas');
+                    canvas.width = 200;
+                    canvas.height = 200;
+                    resultBox.appendChild(canvas);
+                }
+
+                if (canvas._chartInstance) {
+                    canvas._chartInstance.destroy();
+                }
+
+                const labels = Object.keys(data.chart);
+                const values = Object.values(data.chart);
+
+                canvas._chartInstance = new Chart(canvas.getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.6)',
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 206, 86, 0.6)',
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(153, 102, 255, 0.6)',
+                                'rgba(255, 159, 64, 0.6)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+        }
+
+    } catch (err) {
+        console.error("Error running mini analytics:", err);
+        if (resultBox) resultBox.textContent = "❌ Request failed.";
+    }
+}
+
+    </script>
+</body>
+</html>
