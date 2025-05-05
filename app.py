@@ -7,6 +7,7 @@ import time
 from flask import request, jsonify
 import time
 import pandas as pd
+from blueprints.users import init_users_table
 from button_handlers.ai_chat import AiChatHandler  # 👈 Top of your app.py
 from button_registry import get_handler  # 👈 ensure this is imported
 
@@ -215,9 +216,9 @@ def ai_chat():
 def debug_session():
     print(f"[SESSION DEBUG] Path: {request.path} | Session: {dict(session)}")
 
-## test
-from blueprints.users import init_users_table
 
+# Updated for GitHub test - 2025-05-05
+# another test update
 if __name__ == '__main__':
     init_users_table()
     app.run(debug=True)
