@@ -152,7 +152,9 @@ def run_action():
     data = request.json
     button_type = data.get("type", "code")  # default to 'code'
     config = data.get("config", {})
-    version = data.get("version", 1)
+    #version = data.get("version", 2)
+    version = data.get("version") or config.get("version", 1)
+    print(f"[DEBUG] Received button version: {version}")
     background = data.get("background", False)
 
     # 🧠 Legacy fallback for raw code buttons

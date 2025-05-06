@@ -4,7 +4,7 @@ import pandas as pd
 from button_handlers.base import BaseButtonHandler
 
 class MiniAnalyticsHandler(BaseButtonHandler):
-    supported_versions = [1]
+    supported_versions = [1,2]
 
     def run_v1(self):
         database = self.config.get("database")
@@ -43,6 +43,13 @@ class MiniAnalyticsHandler(BaseButtonHandler):
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
+    def run_v2(self):
+        # 💣 simulate a broken version
+        raise ValueError("Deliberate version 2 error for testing.")
+
     # ✅ Add this so it works with /run_action
     def run_current(self):
+        print(f"[MiniAnalytics] Running version {self.version}")
+        if self.version == 2:
+            return self.run_v2()
         return self.run_v1()
