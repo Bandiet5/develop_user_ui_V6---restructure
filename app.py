@@ -11,7 +11,6 @@ from blueprints.users import init_users_table
 from button_handlers.ai_chat import AiChatHandler  # 👈 Top of your app.py
 from button_registry import get_handler  # 👈 ensure this is imported
 
-
 # Blueprints 
 from button_handlers.form import form_bp
 from blueprints.developer import developer_bp
@@ -21,6 +20,8 @@ from blueprints.database import database_bp
 from blueprints.data_routes import data_routes_bp
 from blueprints.ai_tools import read_excel_files, summarize_data
 from blueprints.user_page import user_page_bp
+from blueprints.page_restore import page_restore_bp
+
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -33,7 +34,7 @@ app.register_blueprint(database_bp)
 app.register_blueprint(data_routes_bp)
 app.register_blueprint(user_page_bp)
 app.register_blueprint(form_bp)
- 
+app.register_blueprint(page_restore_bp)
 
 DB_PATH = os.path.join(os.getcwd(), 'data', 'app_data.db') 
 
@@ -131,11 +132,11 @@ def run_task(code):
 
     # ✅ Inject safe defaults
     safe_imports = """
-import sqlite3
-import pandas as pd
-import os
-import getpass
-"""
+        import sqlite3
+        import pandas as pd
+        import os
+        import getpass
+        """
 
     final_code = safe_imports + "\n" + code
 
@@ -152,8 +153,7 @@ def run_action():
     data = request.json
     button_type = data.get("type", "code")  # default to 'code'
     config = data.get("config", {})
-    #version = data.get("version", 2)
-    version = data.get("version") or config.get("version", 1)
+    version = data.get("version", 1)
     print(f"[DEBUG] Received button version: {version}")
     background = data.get("background", False)
 

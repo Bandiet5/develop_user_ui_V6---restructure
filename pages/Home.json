@@ -1,1 +1,16 @@
-{"layout": [{"type": "link", "label": "Supreme", "top": 50, "left": 50, "background": false, "version": 1, "config": {"target": "Supreme"}}, {"type": "upload", "label": "Upload Supreme", "top": 40, "left": 400, "background": true, "version": 1, "config": {"code": "", "database": "Toets.db", "table": "Supreme", "upload_mode": "replace"}}, {"type": "upload", "label": "Upload Supreme 2", "top": 40, "left": 740, "background": true, "version": 1, "config": {"code": "", "database": "Toets.db", "table": "Supreme_2", "upload_mode": "replace"}}, {"type": "download", "label": "Download Supreme", "top": 40, "left": 1100, "background": true, "version": 1, "config": {"code": "", "database": "Toets.db", "table": "Supreme", "file_format": "excel"}}, {"type": "download", "label": "Download supreme 2", "top": 40, "left": 1400, "background": true, "version": 1, "config": {"code": "", "database": "Toets.db", "table": "Supreme_2", "file_format": "excel"}}, {"type": "ai_chat", "label": "AI Chat Assistant", "top": 460, "left": 40, "background": true, "version": 1, "config": {"prompt": "", "database": "Toets.db"}}], "workspace_height": 878}
+{
+  "layout": [
+    {
+      "type": "link",
+      "label": "Go to Supreme",
+      "version": 1,
+      "top": 50,
+      "left": 50,
+      "config": {
+        "target": "Supreme",
+        "background": false
+      }
+    }
+  ],
+  "workspace_height": 804
+}

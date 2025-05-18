@@ -1,0 +1,68 @@
+{
+  "layout": [
+    {
+      "type": "upload",
+      "label": "Upload Claims",
+      "version": 1,
+      "top": 0,
+      "left": 0,
+      "config": {
+        "code": "",
+        "database": "Supreme.db",
+        "table": "claims",
+        "upload_mode": "replace",
+        "background": true
+      }
+    },
+    {
+      "type": "link",
+      "label": "Go to Refunds Upload Page",
+      "version": 1,
+      "top": 0,
+      "left": 320,
+      "config": {
+        "target": "Refunds_Upload",
+        "background": false
+      }
+    },
+    {
+      "type": "form",
+      "label": "Claims Preview",
+      "version": 1,
+      "top": 200,
+      "left": 320,
+      "config": {
+        "database": "Supreme.db",
+        "table": "claims",
+        "key_column": "system_id",
+        "filter_mode": "python",
+        "sql_filter": "",
+        "python_filter": "df = df.head()",
+        "edit_fields": [
+          "system_id",
+          "month",
+          "policy_no",
+          "deceased_surname",
+          "date_of_death"
+        ],
+        "lookup_database": "",
+        "lookup_table": "",
+        "lookup_key_column": "",
+        "lookup_fields": [],
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Grinrod",
+      "version": 1,
+      "top": 0,
+      "left": 620,
+      "config": {
+        "target": "Grinrod_Upload",
+        "background": false
+      }
+    }
+  ],
+  "workspace_height": 1012
+}

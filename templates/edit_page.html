@@ -268,100 +268,102 @@
         
         // 💾 Save page layout
         function saveLayout() {
-    const boxes = document.querySelectorAll('.button-box');
-    const layout = [];
-    const workspace = document.getElementById('workspace');
+        const boxes = document.querySelectorAll('.button-box');
+        const layout = [];
+        const workspace = document.getElementById('workspace');
 
-    boxes.forEach(box => {
-        const type = box.querySelector('.type-selector')?.value || 'code';
-        const label = box.querySelector('.btn-label')?.value || '';
-        const background = box.querySelector('.background-check')?.checked || false;
+        boxes.forEach(box => {
+            const type = box.querySelector('.type-selector')?.value || 'code';
+            const label = box.querySelector('.btn-label')?.value || '';
 
-        const item = {
-            type,
-            label,
-            top: parseInt(box.style.top) || 0,
-            left: parseInt(box.style.left) || 0,
-            background,
-            version: 1,
-            config: {}
-        };
+            const config = {};
 
-        if (type === 'ai_chat') {
-            item.config.prompt = box.querySelector('.ai-question')?.value || '';
-            item.config.database = box.querySelector('.db-select')?.value || '';
-        }
+            switch (type) {
+                case 'ai_chat':
+                    config.prompt = box.querySelector('.ai-question')?.value || '';
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    break;
 
-        else if (type === 'upload') {
-            const dbSelect = box.querySelector('.db-select');
-            const tableSelect = box.querySelector('.table-select');
-            const uploadModeSelect = box.querySelector('.upload-mode');
+                case 'upload':
+                    config.code = box.querySelector('.code-input')?.value || '';
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    config.table = box.querySelector('.table-select')?.value || '';
+                    config.upload_mode = box.querySelector('.upload-mode')?.value || 'append';
+                    break;
 
-            item.config.code = box.querySelector('.code-input')?.value || '';
-            item.config.database = dbSelect?.value || '';
-            item.config.table = tableSelect?.value || '';
-            item.config.upload_mode = uploadModeSelect?.value || 'append';
-        }
+                case 'download':
+                    config.code = box.querySelector('.code-input')?.value || '';
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    config.table = box.querySelector('.table-select')?.value || '';
+                    config.file_format = box.querySelector('.file-format')?.value || 'csv';
+                    break;
 
-        else if (type === 'download') {
-            item.config.code = box.querySelector('.code-input')?.value || '';
-            item.config.database = box.querySelector('.db-select')?.value || '';
-            item.config.table = box.querySelector('.table-select')?.value || '';
-            item.config.file_format = box.querySelector('.file-format')?.value || 'csv';
-        }
+                case 'form':
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    config.table = box.querySelector('.table-select')?.value || '';
+                    config.key_column = box.querySelector('.key-column')?.value || 'system_id';
+                    config.filter_mode = box.querySelector('.filter-mode')?.value || 'simple';
+                    config.sql_filter = box.querySelector('.sql-filter')?.value || '';
+                    config.python_filter = box.querySelector('.python-filter-code')?.value || '';
+                    config.edit_fields = Array.from(box.querySelectorAll('.column-list input:checked')).map(input => input.value);
+                    config.lookup_database = box.querySelector('.lookup-db-select')?.value || '';
+                    config.lookup_table = box.querySelector('.lookup-table-select')?.value || '';
+                    config.lookup_key_column = box.querySelector('.lookup-key-column')?.value || '';
+                    config.lookup_fields = Array.from(box.querySelectorAll('.lookup-column-list input:checked')).map(input => input.value);
+                    break;
 
-        else if (type === 'form') {
-            item.config.database = box.querySelector('.db-select')?.value || '';
-            item.config.table = box.querySelector('.table-select')?.value || '';
-            item.config.key_column = box.querySelector('.key-column')?.value || 'system_id';
-            item.config.filter_mode = box.querySelector('.filter-mode')?.value || 'simple';
-            item.config.sql_filter = box.querySelector('.sql-filter')?.value || '';
-            item.config.python_filter = box.querySelector('.python-filter-code')?.value || '';
-            item.config.edit_fields = Array.from(box.querySelectorAll('.column-list input:checked')).map(input => input.value);
-            item.config.lookup_database = box.querySelector('.lookup-db-select')?.value || '';
-            item.config.lookup_table = box.querySelector('.lookup-table-select')?.value || '';
-            item.config.lookup_key_column = box.querySelector('.lookup-key-column')?.value || '';
-            item.config.lookup_fields = Array.from(box.querySelectorAll('.lookup-column-list input:checked')).map(input => input.value);
-        }
+                case 'mini_analytics':
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    config.table = box.querySelector('.table-select')?.value || '';
+                    config.code = box.querySelector('.code-input')?.value || '';
+                    config.refresh_interval = parseInt(box.querySelector('.refresh-interval')?.value || '30');
+                    config.show_chart = box.querySelector('.show-chart-check')?.checked || false;
+                    break;
 
-        else if (type === 'mini_analytics') {
-            item.config.database = box.querySelector('.db-select')?.value || '';
-            item.config.table = box.querySelector('.table-select')?.value || '';
-            item.config.code = box.querySelector('.code-input')?.value || '';
-            item.config.refresh_interval = parseInt(box.querySelector('.refresh-interval')?.value || '30');
-            item.config.show_chart = box.querySelector('.show-chart-check')?.checked || false;
-        }
+                case 'link':
+                    config.target = box.querySelector('.page-link')?.value || '';
+                    break;
 
-        else if (type === 'link') {
-            item.config.target = box.querySelector('.page-link')?.value || '';
-        }
+                case 'code':
+                    config.code = box.querySelector('.code-input')?.value || '';
+                    break;
 
-        else if (type === 'code') {
-            item.config.code = box.querySelector('.code-input')?.value || '';
-        }
+                default:
+                    console.warn("Unknown button type:", type);
+            }
 
-        layout.push(item);
-    });
+            config.background = box.querySelector('.background-check')?.checked || false;
 
-    const workspaceHeight = workspace.offsetHeight;
+            layout.push({
+                type,
+                label,
+                top: parseInt(box.style.top) || 0,
+                left: parseInt(box.style.left) || 0,
+                version: 1,
+                config
+            });
+        });
 
-    fetch("{{ url_for('edit_page.save_page', page_name=page_name) }}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ layout, workspace_height: workspaceHeight })
-    })
-    .then(res => {
-        if (!res.ok) throw new Error('Failed to save');
-        return res.json();
-    })
-    .then(() => alert("✅ Layout saved!"))
-    .catch(err => {
-        console.error("Save failed:", err);
-        alert("❌ Save failed.");
-    });
-}
+        const workspaceHeight = workspace.offsetHeight;
 
-
+        fetch("{{ url_for('edit_page.save_page', page_name=page_name) }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ layout, workspace_height: workspaceHeight })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to save');
+            return res.json();
+        })
+        .then(() => alert("✅ Layout saved!"))
+        .catch(err => {
+            console.error("Save failed:", err);
+            alert("❌ Save failed.");
+        });
+    }
+        
+    
+    
         // Build dropdowns
         function buildDatabaseTableDropdowns() {
         return `
@@ -381,16 +383,20 @@
         }
             const dbTables = {{ db_tables | tojson }};
 
-        function addButton() {
-            addButtonFromData({
-            label: "New Button",
-            type: "code",
-            top: 50,
-            left: 50,
-            action: "",
-            background: false
-        });
-        }
+            function addButton() {
+                addButtonFromData({
+                    label: "New Button",
+                    type: "code",
+                    top: 50,
+                    left: 50,
+                    config: {
+                        code: "",
+                        target: "",
+                        background: false
+                    }
+                });
+            }
+
     
         function addUploadBox() {
             const firstDb = Object.keys(dbTables)[0] || "";
@@ -444,42 +450,44 @@
         }
 
         function addButtonFromData(data) {
-            const div = document.createElement('div');
-            div.className = 'button-box';
-            div.style.top = data.top + 'px';
-            div.style.left = data.left + 'px';
-        
-            const isLink = data.type === 'link';
-        
-            div.innerHTML = `
-                <input type="text" class="btn-label" value="${data.label || 'New Button'}"><br>
-        
-                <select class="type-selector" onchange="toggleActionInput(this)">
-                    <option value="code" ${!isLink ? 'selected' : ''}>🧠 Run Python Code</option>
-                    <option value="link" ${isLink ? 'selected' : ''}>🔗 Link to Page</option>
-                </select><br>
-        
-                <div class="action-input">
-                    <select class="page-link">
-                        {% for p in pages %}
-                            <option value="{{ p }}" ${data.action === '{{ p }}' ? 'selected' : ''}>{{ p }}</option>
-                        {% endfor %}
-                    </select>
-        
-                    <textarea class="code-input" placeholder="Python code..." style="display: ${isLink ? 'none' : 'block'};">${!isLink ? data.action || '' : ''}</textarea>
-                </div>
-        
-                <label>
-                    <input type="checkbox" class="background-check" ${data.background ? 'checked' : ''}>
-                    Run in background
-                </label>
-        
-                <button onclick="this.parentElement.remove()">❌</button>
-            `;
-        
-            document.getElementById('workspace').appendChild(div);
-        }
-        
+    const config = data.config || {};
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = (data.top || 0) + 'px';
+    div.style.left = (data.left || 0) + 'px';
+
+    const isLink = data.type === 'link';
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="${data.label || 'New Button'}"><br>
+
+        <select class="type-selector" onchange="toggleActionInput(this)">
+            <option value="code" ${!isLink ? 'selected' : ''}>🧠 Run Python Code</option>
+            <option value="link" ${isLink ? 'selected' : ''}>🔗 Link to Page</option>
+        </select><br>
+
+        <div class="action-input">
+            <select class="page-link" style="${isLink ? '' : 'display:none;'}">
+                {% for p in pages %}
+                    <option value="{{ p }}" ${config.target === '{{ p }}' ? 'selected' : ''}>{{ p }}</option>
+                {% endfor %}
+            </select>
+
+            <textarea class="code-input" placeholder="Python code..." style="${isLink ? 'display:none;' : 'display:block'};">${!isLink ? config.code || '' : ''}</textarea>
+        </div>
+
+        <label>
+            <input type="checkbox" class="background-check" ${config.background ? 'checked' : ''}>
+            Run in background
+        </label>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+}
+
+
         function addUploadBoxFromData(data) {
     const config = data.config || {};
 
@@ -530,7 +538,7 @@
 
         <input type="file" class="file-input"><br>
 
-        <label><input type="checkbox" class="background-check" ${data.background ? 'checked' : ''}>
+        <label><input type="checkbox" class="background-check" ${config.background ? 'checked' : ''}>
             Run in background
         </label>
 
@@ -587,7 +595,7 @@
             </select> Format
         </label><br>
 
-        <label><input type="checkbox" class="background-check" ${data.background ? 'checked' : ''}>
+        <label><input type="checkbox" class="background-check" ${config.background ? 'checked' : ''}>
             Run in background
         </label>
 
@@ -603,7 +611,7 @@
     const db = data.database || config.database || '';
     const prompt = config.prompt || '';
     const label = data.label || 'AI Chat';
-    const background = data.background ? 'checked' : '';
+    const background = config.background ? 'checked' : '';
 
     const dbOptions = Object.keys(dbTables).map(dbName =>
         `<option value="${dbName}" ${dbName === db ? 'selected' : ''}>${dbName}</option>`

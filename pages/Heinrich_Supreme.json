@@ -1,0 +1,59 @@
+{
+  "layout": [
+    {
+      "type": "upload",
+      "label": "Upload File Bank Master",
+      "version": 1,
+      "top": 60,
+      "left": 20,
+      "config": {
+        "code": "df = df.astype(str)",
+        "database": "Supreme.db",
+        "table": "bank_master",
+        "upload_mode": "append",
+        "background": false
+      }
+    },
+    {
+      "type": "form",
+      "label": "Show Head of data",
+      "version": 1,
+      "top": 180,
+      "left": 320,
+      "config": {
+        "database": "Supreme.db",
+        "table": "bank_master",
+        "key_column": "system_id",
+        "filter_mode": "python",
+        "sql_filter": "",
+        "python_filter": "df = df.head()",
+        "edit_fields": [
+          "txn_date",
+          "effective",
+          "description",
+          "truncated_card_number",
+          "amount",
+          "charges",
+          "balance"
+        ],
+        "lookup_database": "Supreme.db",
+        "lookup_table": "",
+        "lookup_key_column": "",
+        "lookup_fields": [],
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Go to Nupay Upload",
+      "version": 1,
+      "top": 60,
+      "left": 320,
+      "config": {
+        "target": "Nupay_Upload",
+        "background": false
+      }
+    }
+  ],
+  "workspace_height": 1307
+}

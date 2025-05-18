@@ -1,0 +1,69 @@
+{
+  "layout": [
+    {
+      "type": "upload",
+      "label": "Upload File",
+      "version": 1,
+      "top": 0,
+      "left": 0,
+      "config": {
+        "code": "",
+        "database": "Supreme.db",
+        "table": "grinrod_upload",
+        "upload_mode": "replace",
+        "background": true
+      }
+    },
+    {
+      "type": "form",
+      "label": "preview grinrod",
+      "version": 1,
+      "top": 180,
+      "left": 340,
+      "config": {
+        "database": "Supreme.db",
+        "table": "grinrod_upload",
+        "key_column": "system_id",
+        "filter_mode": "python",
+        "sql_filter": "",
+        "python_filter": "df = df.head()",
+        "edit_fields": [
+          "system_id",
+          "client_id_number",
+          "policy_number",
+          "capture_date",
+          "monthly_instalment",
+          "bank_name"
+        ],
+        "lookup_database": "Supreme.db",
+        "lookup_table": "",
+        "lookup_key_column": "",
+        "lookup_fields": [],
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Go to Claims Upload Page",
+      "version": 1,
+      "top": 0,
+      "left": 340,
+      "config": {
+        "target": "Claims_Upload",
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "go back to nupay",
+      "version": 1,
+      "top": 0,
+      "left": 640,
+      "config": {
+        "target": "Nupay_Upload",
+        "background": false
+      }
+    }
+  ],
+  "workspace_height": 1191
+}

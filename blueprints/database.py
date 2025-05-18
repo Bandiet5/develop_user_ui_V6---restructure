@@ -74,7 +74,7 @@ def create_table():
     db_path = os.path.join(DB_FOLDER, db_name)
 
     # 🛡️ Always add a system_id column FIRST
-    system_column = "system_id INTEGER PRIMARY KEY AUTOINCREMENT"
+    system_column = "system_id TEXT PRIMARY KEY"
     custom_columns = ', '.join(f"{name} {dtype}" for name, dtype in zip(column_names, column_types))
     full_columns = f"{system_column}, {custom_columns}"
 

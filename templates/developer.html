@@ -36,7 +36,12 @@
     <h3>📁 Manage Database</h3>
     <form action="{{ url_for('database.database_dashboard') }}">
         <button type="submit">🛠 Open Database Manager</button>
-    </form>    
+    </form>
+    
+    <h3>🕘 Restore Page Version</h3>
+    <form action="{{ url_for('page_restore.restore_page_view') }}">
+        <button type="submit">🔄 Restore from Backup</button>
+    </form>
 
     <p><a href="{{ url_for('logout') }}">🔒 Logout</a></p>
 </body>

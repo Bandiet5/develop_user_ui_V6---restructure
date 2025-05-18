@@ -16,6 +16,7 @@
             <div class="button-box"
                 style="top: {{ item.top }}px; left: {{ item.left }}px; width: {{ item.width | default(220) }}px;"
                 data-type="{{ item.type }}"
+                data-version="{{ item.version }}"
                 data-config='{{ config | tojson }}'
                 data-background="{{ item.background | default(false) | lower }}"
                 data-refresh-interval="{{ config.refresh_interval | default(30) }}"
@@ -64,7 +65,9 @@
                     <div class="ai-result"></div>
     
                 {% elif item.type == 'form' %}
-                    <button onclick="loadFormData(this)">📋 Load Form</button>
+                    <form onsubmit="loadFormData(event, this)">
+                        <button type="submit">📋 Load Form</button>
+                    </form>
                     <div class="form-container"></div>
     
                 {% elif item.type == 'mini_analytics' %}
@@ -109,6 +112,7 @@
     const type = box.getAttribute('data-type') || 'code';
     const runInBackground = box.getAttribute('data-background') === 'true';
     const config = JSON.parse(box.getAttribute('data-config') || '{}');
+    const version = parseInt(box.getAttribute('data-version')) || 1;
     const originalText = buttonElement.textContent;
     buttonElement.textContent = "Running...";
 
@@ -164,6 +168,7 @@
         body: JSON.stringify({
             type,
             config,
+            version,  
             background: runInBackground
         })
     })
@@ -329,8 +334,10 @@
          
         
         
-        async function loadFormData(button) {
-    const box = button.closest('.button-box');
+        async function loadFormData(event, formElement) {
+    event.preventDefault();
+
+    const box = formElement.closest('.button-box');
     const container = box.querySelector('.form-container');
     container.textContent = "⏳ Loading...";
 
@@ -343,6 +350,7 @@
     }
 
     const keyColumn = config.key_column || 'system_id';
+    const version = parseInt(box.getAttribute('data-version')) || 1;
 
     try {
         const res = await fetch('/run_action', {
@@ -351,6 +359,7 @@
             body: JSON.stringify({
                 type: 'form',
                 config,
+                version,
                 background: false
             })
         });
@@ -404,7 +413,7 @@
                 input.value = row?.[field] ?? '';
                 inputWrapper.appendChild(input);
 
-                // Normalize and match keys
+                // Optional lookup
                 if (lookupData.length > 0 && lookupFields.includes(field) && lookupKey && row[lookupKey]) {
                     const rowKey = String(row[lookupKey]).trim();
                     const matches = lookupData.filter(entry =>
@@ -449,6 +458,8 @@
 }
 
 
+
+
         async function submitFormUpdate(e, form, db, table, keyColumn) {
             e.preventDefault();
 
@@ -480,6 +491,7 @@
     const table = buttonBox.getAttribute('data-table') || '';
     const code = buttonBox.getAttribute('data-code') || '';
     const returnChart = buttonBox.getAttribute('data-show-chart') === 'true';  // ✅ FIX HERE!
+    const version = parseInt(buttonBox.getAttribute('data-version')) || 1;  // ✅ NEW LINE
 
     if (!db || !table || !code) {
         console.error('Missing database, table, or code.');
@@ -499,7 +511,8 @@
                 database: db,
                 table: table,
                 code: code,
-                return_chart: returnChart  // ✅ dynamic based on button
+                return_chart: returnChart,  // ✅ dynamic based on button
+                version: version   // ✅ FIXED HERE
             })
         });
 
