@@ -1,0 +1,61 @@
+{
+  "layout": [
+    {
+      "type": "upload",
+      "label": "Upload File Nupay",
+      "version": 1,
+      "top": 20,
+      "left": 20,
+      "config": {
+        "code": "",
+        "database": "Supreme.db",
+        "table": "nupay_upload",
+        "upload_mode": "replace",
+        "background": true
+      }
+    },
+    {
+      "type": "form",
+      "label": "View Nupay data",
+      "version": 1,
+      "top": 220,
+      "left": 340,
+      "config": {
+        "database": "Supreme.db",
+        "table": "nupay_upload",
+        "key_column": "system_id",
+        "filter_mode": "python",
+        "sql_filter": "",
+        "python_filter": "df = df.head()",
+        "edit_fields": [
+          "payment_id",
+          "mandate_id",
+          "tracking_desc",
+          "mandate_reference_number",
+          "contract_reference",
+          "bank_name",
+          "client_reference",
+          "direct_debit_id",
+          "instalment_amount"
+        ],
+        "lookup_database": "Supreme.db",
+        "lookup_table": "",
+        "lookup_key_column": "",
+        "lookup_fields": [],
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Grinrod Upload",
+      "version": 1,
+      "top": 20,
+      "left": 340,
+      "config": {
+        "target": "Grinrod_Upload",
+        "background": false
+      }
+    }
+  ],
+  "workspace_height": 1228
+}

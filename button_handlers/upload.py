@@ -48,6 +48,7 @@ class UploadHandler:
 
         return best_row if max_matches >= 2 else 0
 
+
     def run(self):
         try:
             db_name = self.config.get('database')
@@ -91,13 +92,25 @@ class UploadHandler:
 
             # ✅ Optional: run any injected code
             if python_code:
-                local_vars = {'df': df}
-                exec(python_code, {}, local_vars)
-                df = local_vars.get('df', df)
+                print(f"[DEBUG] Running injected code:\n{python_code}")
+                local_vars = {'df': df}        
+                try:
+                    exec(python_code, {}, local_vars)
+                    df = local_vars.get('df', df)
+                except Exception as e:
+                    print(f"[EXEC ERROR] {e}")
 
             # ✅ Filter only matching columns, keep all as strings
             columns_to_insert = [col for col in table_columns if col in df.columns]
             df = df[columns_to_insert].astype(str)
+
+            # 🔧 Fix string 'nan' before inserting
+            df = df.replace(['nan', 'NaN'], '', regex=True)
+
+            print("[DEBUG] Final DataFrame before insert:")
+            print(df.dtypes)
+            print(df.head(3).to_dict(orient='records'))
+            print("Columns to insert:", columns_to_insert)  
 
             # ✅ Save to database
             conn = sqlite3.connect(db_path)

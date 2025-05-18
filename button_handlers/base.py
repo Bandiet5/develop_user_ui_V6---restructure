@@ -1,8 +1,8 @@
 class BaseButtonHandler:
-    supported_versions = [1]  # list of integers this handler supports
+    supported_versions = [1,2]  # list of integers this handler supports
 
     def __init__(self, version, config):
-        self.version = version or 1  # default to 1 if missing 
+        self.version = int(version) if version is not None else 1
         self.config = config or {}
 
     def run(self):

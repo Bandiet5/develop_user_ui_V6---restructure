@@ -1,0 +1,56 @@
+{
+  "layout": [
+    {
+      "type": "upload",
+      "label": "Upload Bordereaux",
+      "version": 1,
+      "top": 0,
+      "left": 0,
+      "config": {
+        "code": "",
+        "database": "Supreme.db",
+        "table": "Bordereaux",
+        "upload_mode": "replace",
+        "background": true
+      }
+    },
+    {
+      "type": "link",
+      "label": "Supreme Calculation page",
+      "version": 1,
+      "top": 0,
+      "left": 360,
+      "config": {
+        "target": "Go_to_Supreme_Calculation_Page",
+        "background": false
+      }
+    },
+    {
+      "type": "form",
+      "label": "Bordereaux",
+      "version": 1,
+      "top": 180,
+      "left": 360,
+      "config": {
+        "database": "Supreme.db",
+        "table": "Bordereaux",
+        "key_column": "system_id",
+        "filter_mode": "python",
+        "sql_filter": "",
+        "python_filter": "df = df.head()",
+        "edit_fields": [
+          "policy_number",
+          "active",
+          "id_number",
+          "id_number_xds_verified"
+        ],
+        "lookup_database": "",
+        "lookup_table": "",
+        "lookup_key_column": "",
+        "lookup_fields": [],
+        "background": false
+      }
+    }
+  ],
+  "workspace_height": 1046
+}

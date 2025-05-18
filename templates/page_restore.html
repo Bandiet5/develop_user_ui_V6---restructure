@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Restore Page</title>
+    <script>
+
+        async function loadVersions() {
+    const page = document.getElementById("page-name").value;
+    const versionSelect = document.getElementById("version-id");
+    const preview = document.getElementById("button-preview");
+
+    versionSelect.innerHTML = "";
+    preview.innerHTML = ""; // 🧼 Clear stale buttons on page change
+
+    if (!page) return;
+
+    const res = await fetch(`/get_versions?page=${encodeURIComponent(page)}`);
+    const versions = await res.json();
+
+    versions.forEach(v => {
+        const option = document.createElement("option");
+        option.value = v.id;
+        option.textContent = v.saved_at;
+        versionSelect.appendChild(option);
+    });
+
+    // Optionally auto-load the first version *only if it makes sense*
+    if (versions.length > 0) {
+        versionSelect.selectedIndex = 0;
+        loadButtons(); // You can remove this if you want to wait until user selects
+    }
+}
+
+        async function loadButtons() {
+    const versionId = document.getElementById("version-id").value;
+    const pageName = document.getElementById("page-name").value;
+    if (!versionId || !pageName) return;
+
+    const res = await fetch(`/get_buttons_from_version?id=${encodeURIComponent(versionId)}&page=${encodeURIComponent(pageName)}`);
+    const labels = await res.json();
+
+    const preview = document.getElementById("button-preview");
+    preview.innerHTML = labels.map(label => `<li>${label}</li>`).join("\n");
+}
+
+        function autoFill(input) {
+    const datalist = document.getElementById("page-options");
+    const val = input.value.toLowerCase();
+    const matches = Array.from(datalist.options).filter(opt =>
+        opt.value.toLowerCase().startsWith(val)
+    );
+
+    if (matches.length === 1) {
+        input.value = matches[0].value;
+    }
+}
+
+    </script>
+</head>
+<body>
+    <h2>🔄 Restore Page Version</h2>
+
+    <form method="POST" action="/restore_version">
+        <label>Page:
+            <input list="page-options" id="page-name" name="page_name"
+                oninput="autoFill(this); loadVersions()"
+                onchange="loadVersions()" required>
+
+            <datalist id="page-options">
+                {% for page in pages %}
+                    <option value="{{ page }}">
+                {% endfor %}
+            </datalist>
+        </label>
+        <br><br>
+
+        <label>Version:
+            <select id="version-id" name="version_id" onchange="loadButtons()" required></select>
+        </label>
+        <br><br>
+
+        <h4>📦 Buttons in this version:</h4>
+        <ul id="button-preview"></ul>
+
+        <br>
+        <button type="submit" onclick="return confirm('Restore this version? This will overwrite the current file.')">
+            ✅ Restore Selected Version
+        </button>
+    </form>
+
+    <br>
+    <a href="{{ url_for('developer.developer_dashboard') }}">⬅ Back to Developer Dashboard</a>
+</body>
+</html>
