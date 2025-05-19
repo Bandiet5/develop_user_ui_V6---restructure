@@ -10,6 +10,7 @@ import pandas as pd
 from blueprints.users import init_users_table
 from button_handlers.ai_chat import AiChatHandler  # 👈 Top of your app.py
 from button_registry import get_handler  # 👈 ensure this is imported
+from button_handlers.multi_upload import MultiUploadHandler
 
 # Blueprints 
 from button_handlers.form import form_bp
@@ -21,7 +22,7 @@ from blueprints.data_routes import data_routes_bp
 from blueprints.ai_tools import read_excel_files, summarize_data
 from blueprints.user_page import user_page_bp
 from blueprints.page_restore import page_restore_bp
-
+from blueprints.manage_functions import manage_functions_bp
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -35,6 +36,7 @@ app.register_blueprint(data_routes_bp)
 app.register_blueprint(user_page_bp)
 app.register_blueprint(form_bp)
 app.register_blueprint(page_restore_bp)
+app.register_blueprint(manage_functions_bp)
 
 DB_PATH = os.path.join(os.getcwd(), 'data', 'app_data.db') 
 
@@ -130,19 +132,49 @@ def user_page(page_name):
 def run_task(code):
     print("[TASK] Running:", code)
 
-    # ✅ Inject safe defaults
+    import importlib.util
+    import os
+    from contextlib import redirect_stdout
+    from io import StringIO
+
+    def import_uploaded_modules():
+        context = {}
+        code_dir = os.path.join(os.getcwd(), "uploaded_code")
+        if not os.path.exists(code_dir):
+            return context
+
+        for fname in os.listdir(code_dir):
+            if fname.endswith(".py"):
+                name = fname[:-3]
+                fpath = os.path.join(code_dir, fname)
+
+                try:
+                    spec = importlib.util.spec_from_file_location(name, fpath)
+                    mod = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mod)
+                    context[name] = mod
+                    print(f"[IMPORT] Loaded module: {name}")
+                except Exception as e:
+                    print(f"[IMPORT ERROR] Could not load {fname}: {e}")
+        return context
+
+    # ✅ Safe base imports available to the user's code
     safe_imports = """
-        import sqlite3
-        import pandas as pd
-        import os
-        import getpass
-        """
+import sqlite3
+import pandas as pd
+import os
+import getpass
+"""
 
     final_code = safe_imports + "\n" + code
 
     try:
-        context = {}
-        exec(final_code, context, context)  # shared globals/locals 
+        context = import_uploaded_modules()
+        f = StringIO()
+        with redirect_stdout(f):  # Capture output for logging
+            exec(final_code, context, context)
+        output = f.getvalue().strip()
+        print("[TASK OUTPUT]", output or "✅ Done.")
     except Exception as e:
         print("[TASK ERROR]", e)
 
@@ -151,13 +183,13 @@ def run_task(code):
 @app.route('/run_action', methods=['POST'])
 def run_action():
     data = request.json
-    button_type = data.get("type", "code")  # default to 'code'
+    button_type = data.get("type", "code")
     config = data.get("config", {})
     version = data.get("version", 1)
-    print(f"[DEBUG] Received button version: {version}")
     background = data.get("background", False)
+    print(f"[DEBUG] Received button version: {version}")
 
-    # 🧠 Legacy fallback for raw code buttons
+    # 🧠 Handle raw Python code buttons
     if button_type == "code":
         code = data.get("action", "") or config.get("code", "")
         if not code:
@@ -167,23 +199,28 @@ def run_action():
             print("[BACKGROUND] Running raw code...")
             Process(target=run_task, args=(code,)).start()
             return jsonify({'status': 'ok', 'message': 'Started in background'})
-        else:
-            run_task(code)
-            return jsonify({'status': 'ok', 'message': 'Ran in foreground'})
 
-    # ✅ Pluggable handler structure
+        run_task(code)
+        return jsonify({'status': 'ok', 'message': 'Ran in foreground'})
+
+    # ✅ Handle all other registered buttons
     handler_class = get_handler(button_type)
     if not handler_class:
         return jsonify({'status': 'error', 'message': f"Unknown button type: {button_type}"}), 400
 
     try:
         handler = handler_class(version=version, config=config)
+
+        if background:
+            print(f"[BACKGROUND] Running handler: {button_type}")
+            Process(target=handler.run_current).start()
+            return jsonify({'status': 'ok', 'message': f'{button_type} running in background'})
+
         result = handler.run()
         return jsonify(result), 200 if result.get("status") == "ok" else 400
     except Exception as e:
         print("[RUN ACTION ERROR]", str(e))
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
 
 
 from flask import request, jsonify

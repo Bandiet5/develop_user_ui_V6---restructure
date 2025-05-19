@@ -56,6 +56,61 @@ def run_upload_handler(handler_class, config):
     handler = handler_class(version=1, config=config)
     handler.run()
 
+@data_routes_bp.route('/upload_multi_files', methods=['POST'])
+def upload_multi_files():
+    try:
+        uploaded_files = request.files.getlist("files")
+        database = request.form.get("database")
+        table = request.form.get("table")
+        code = request.form.get("code", "")
+        upload_mode = request.form.get("upload_mode", "append")
+        background = request.form.get("background") == "true"
+        version = int(request.form.get("version") or 1)
+
+        if not uploaded_files or not database or not table:
+            return jsonify({"status": "error", "message": "Missing required fields."})
+
+        # Save each file to disk (e.g., data/uploads/)
+        save_dir = os.path.join("data", "uploads")
+        os.makedirs(save_dir, exist_ok=True)
+
+        saved_paths = []
+        for file in uploaded_files:
+            ext = os.path.splitext(file.filename)[-1]
+            unique_name = f"{uuid.uuid4().hex}{ext}"
+            save_path = os.path.join(save_dir, unique_name)
+            file.save(save_path)
+            saved_paths.append(save_path)
+
+        # Trigger multi_upload handler
+        from button_registry import get_handler
+        handler_class = get_handler("multi_upload")
+        if not handler_class:
+            return jsonify({"status": "error", "message": "Handler not found."})
+
+        config = {
+            "file_paths": saved_paths,
+            "database": database,
+            "table": table,
+            "code": code,
+            "upload_mode": upload_mode  # ✅ now included
+        }
+
+        handler = handler_class(version=version, config=config)
+
+        if background:
+            from multiprocessing import Process
+            print("[BACKGROUND] Starting multi_upload in background...")
+            Process(target=handler.run_current).start()
+            return jsonify({"status": "ok", "message": "Scheduled in background"})
+
+        result = handler.run()
+        return jsonify(result), 200 if result.get("status") == "ok" else 400
+
+    except Exception as e:
+        print("[UPLOAD ERROR]", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 
 # Use user's Downloads folder
 def get_download_folder():
@@ -119,5 +174,4 @@ def download_data():
         return jsonify({'status': 'error', 'message': 'Download failed'}), 500
 
     return send_file(file_path, as_attachment=True)
-
 

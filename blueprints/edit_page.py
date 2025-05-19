@@ -97,6 +97,85 @@ def init_page_data_db():
 
 init_page_data_db()
 
+def check_and_sync_button_schema(layout):
+    db_path = PAGE_DB_PATH
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Create button_config table if not exists
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS button_config (
+            type TEXT PRIMARY KEY,
+            config_json TEXT
+        )
+    ''')
+
+    updated_types = []
+
+    for button in layout:
+        btn_type = button.get("type")
+        config = button.get("config", {})
+
+        # Lookup current saved config for this type
+        cursor.execute("SELECT config_json FROM button_config WHERE type = ?", (btn_type,))
+        row = cursor.fetchone()
+
+        if not row:
+            # First time we've seen this type → save its schema
+            cursor.execute(
+                "INSERT INTO button_config (type, config_json) VALUES (?, ?)",
+                (btn_type, json.dumps(config))
+            )
+        else:
+            saved_config = json.loads(row[0])
+            new_keys = set(config.keys()) - set(saved_config.keys())
+
+            if new_keys:
+                # Merge and save the new schema
+                merged_config = {**saved_config}
+                for k in new_keys:
+                    merged_config[k] = ""
+
+                cursor.execute(
+                    "UPDATE button_config SET config_json = ? WHERE type = ?",
+                    (json.dumps(merged_config), btn_type)
+                )
+                updated_types.append((btn_type, merged_config))
+
+    conn.commit()
+    conn.close()
+
+    if updated_types:
+        patch_pages_with_missing_keys(updated_types)
+
+
+def patch_pages_with_missing_keys(updated_types):
+    for filename in os.listdir(PAGES_FOLDER):
+        if not filename.endswith('.json'):
+            continue
+
+        filepath = os.path.join(PAGES_FOLDER, filename)
+
+        with open(filepath, 'r') as f:
+            page_data = json.load(f)
+
+        layout = page_data.get("layout", [])
+        updated = False
+
+        for button in layout:
+            for btn_type, merged_config in updated_types:
+                if button["type"] == btn_type:
+                    config = button.get("config", {})
+                    for key in merged_config:
+                        if key not in config:
+                            config[key] = ""
+                            updated = True
+
+        if updated:
+            print(f"🔄 Patched missing keys in: {filename}")
+            with open(filepath, 'w') as f:
+                json.dump(page_data, f, indent=2)
+
 #######################################
 # save the page
 def save_page_to_database(page_name, layout, workspace_height):
@@ -125,14 +204,15 @@ def save_page_to_database(page_name, layout, workspace_height):
         total_versions = c.fetchone()[0]
 
         if total_versions > 5:
-            # Find old version IDs
+            # ✅ Only consider versions older than today
             c.execute('''
                 SELECT id FROM page_versions
-                WHERE page_name = ? AND saved_at < datetime('now', '-1 day')
+                WHERE page_name = ? AND date(saved_at) < date('now')
                 ORDER BY saved_at ASC
             ''', (page_name,))
             old_ids = [row[0] for row in c.fetchall()]
 
+            # Only delete enough to keep 5
             to_delete = max(0, total_versions - 5)
             ids_to_remove = old_ids[:to_delete]
 
@@ -158,13 +238,11 @@ def save_page(page_name):
     workspace_height = request.json.get('workspace_height', 800)
     filepath = os.path.join(PAGES_FOLDER, f"{page_name}.json")
 
-    # Normalize layout
     layout = []
     for item in layout_raw:
         btn_type = item.get("type", "code")
         handler_class = get_handler(btn_type)
 
-        # Determine version to save
         version = 1
         if handler_class and hasattr(handler_class, "supported_versions"):
             version = max(handler_class.supported_versions)
@@ -179,18 +257,18 @@ def save_page(page_name):
         }
         layout.append(normalized)
 
-    # Save to JSON file
+    # ✅ Sync and patch if button schemas changed
+    check_and_sync_button_schema(layout)
+
     with open(filepath, 'w') as f:
         json.dump({
             "layout": layout,
             "workspace_height": workspace_height
         }, f, indent=2)
 
-    # Save to database (snapshot + version history)
     save_page_to_database(page_name, layout, workspace_height)
 
     return jsonify({'status': 'success'})
-
 
 
 # Load database & table list

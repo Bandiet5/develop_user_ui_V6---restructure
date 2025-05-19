@@ -10,22 +10,68 @@
     <h3>Create a New Page</h3>
     <form action="{{ url_for('developer.create_page') }}" method="post">
         <input type="text" name="page_name" placeholder="Page name" required>
+
+        <label>Select Group:
+            <select name="group_name" id="groupDropdown" onchange="toggleNewGroupInput(this)">
+                {% for group in page_structure %}
+                    <option value="{{ group.group }}">{{ group.group }}</option>
+                {% endfor %}
+                <option value="_new">➕ New Group...</option>
+            </select>
+        </label>
+
+        <input type="text" name="new_group_name" id="newGroupInput" placeholder="New group name" style="display:none;">
+
         <button type="submit">➕ Create</button>
     </form>
 
     <h3>Existing Pages</h3>
-    <ul>
-        {% for page in pages %}
-            <li>
-                <a href="{{ url_for('edit_page.edit_page', page_name=page) }}">{{ page }}</a>
-                <form action="{{ url_for('developer.delete_page', page_name=page) }}" method="post" style="display:inline;">
-                    <button type="submit" onclick="return confirm('Delete page {{ page }}?')">🗑️</button>
+    {% for group in page_structure %}
+        <details open>
+            <summary>
+                <strong>{{ group.group }}</strong>
+                <form action="{{ url_for('developer.delete_group') }}" method="post" style="display:inline;">
+                    <input type="hidden" name="group_name" value="{{ group.group }}">
+                    <button type="submit" onclick="return confirm('Delete group {{ group.group }}? Pages will be moved to Ungrouped.')" style="margin-left: 10px;">
+                        🗑️
+                    </button>
                 </form>
-            </li>
-        {% else %}
-            <li>No pages yet.</li>
-        {% endfor %}
-    </ul>
+            </summary>            
+            <ul>
+                {% for page in group.pages %}
+                    <li>
+                        <form action="{{ url_for('developer.update_page_order') }}" method="post" style="display:inline;">
+                            <input type="hidden" name="page_name" value="{{ page.name }}">
+                            <input type="hidden" name="group_name" value="{{ group.group }}">
+                            <input type="number" name="order" value="{{ page.order }}" min="0" style="width: 50px;"
+                                onchange="this.form.submit()" title="Sort order">
+                        </form>
+
+                        <a href="{{ url_for('edit_page.edit_page', page_name=page.name) }}">{{ page.name }}</a>
+
+                        <!-- Delete -->
+                        <form action="{{ url_for('developer.delete_page', page_name=page.name) }}" method="post" style="display:inline;">
+                            <button type="submit" onclick="return confirm('Delete page {{ page.name }}?')">🗑️</button>
+                        </form>
+
+                        <!-- Move -->
+                        <form action="{{ url_for('developer.move_page') }}" method="post" style="display:inline;">
+                            <input type="hidden" name="page_name" value="{{ page.name }}">
+                            <select name="new_group" onchange="this.form.submit()" style="margin-left: 5px;">
+                                {% for g in page_structure %}
+                                    <option value="{{ g.group }}" {% if g.group == group.group %}selected{% endif %}>
+                                        → {{ g.group }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </li>
+                {% endfor %}
+
+            </ul>
+        </details>
+    {% endfor %}
+
 
 
     <h3>🔐 User Management</h3>
@@ -37,6 +83,12 @@
     <form action="{{ url_for('database.database_dashboard') }}">
         <button type="submit">🛠 Open Database Manager</button>
     </form>
+
+    <h3>🧠 Function Library</h3>
+    <form action="{{ url_for('manage_functions.manage_functions') }}">
+        <button type="submit">📁 Manage Functions</button>
+    </form>
+
     
     <h3>🕘 Restore Page Version</h3>
     <form action="{{ url_for('page_restore.restore_page_view') }}">
@@ -44,5 +96,19 @@
     </form>
 
     <p><a href="{{ url_for('logout') }}">🔒 Logout</a></p>
+
+    <script>
+        function toggleNewGroupInput(select) {
+            const newInput = document.getElementById("newGroupInput");
+            if (select.value === "_new") {
+                newInput.style.display = "inline-block";
+                newInput.required = true;
+            } else {
+                newInput.style.display = "none";
+                newInput.required = false;
+            }
+        }
+    </script>
+
 </body>
 </html>

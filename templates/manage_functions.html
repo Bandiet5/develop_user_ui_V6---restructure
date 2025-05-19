@@ -1,0 +1,20 @@
+<h2>🧠 Manage Python Functions</h2>
+
+<form action="{{ url_for('manage_functions.upload_function') }}" method="POST" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".py" required>
+    <button type="submit">📤 Upload .py File</button>
+</form>
+
+<h3>Available Files</h3>
+<ul>
+    {% for f in files %}
+        <li>
+            {{ f }}
+            <a href="{{ url_for('manage_functions.edit_function', filename=f) }}">✏️ Edit</a>
+        </li>
+    {% else %}
+        <li>No .py files uploaded yet.</li>
+    {% endfor %}
+</ul>
+
+<a href="{{ url_for('developer.developer_dashboard') }}">⬅ Back to Developer Dashboard</a>

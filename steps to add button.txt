@@ -1,14 +1,16 @@
-edit_page.html
-1) add button like this <button onclick="addFormBox()">\ud83d\udcdd Add Form Box</button>
-2) add functions like this: function addFormBox() in scripts
-3) update the Then inside saveLayout() place for new button
-4) // Finally at the bottom when loading existing layout items add to layout
-
-edit_page.py
-5) add needed functions backend
-
-6) user_page.html update the part: {% for item in layout %} add button for user
-
-7) can add functions to user_page.py
-
-8) add bluprints if ne .py file is made in app.py
+✅ 🔧 How to Add a New Button (Step-by-Step)
+Step	File/Area	Description
+1️⃣	button_handlers/your_button.py	Create new handler class, extend BaseButtonHandler, implement run_v1() or run_current()
+2️⃣	button_registry.py	Register your handler in BUTTON_TYPES, e.g.:
+"my_button": MyButtonHandler
+3️⃣	edit_page.html → addYourButtonBox()	Create builder function that renders the UI for the button
+4️⃣	edit_page.html → saveLayout()	Add case 'your_button': to extract config values from the button UI
+5️⃣	edit_page.html → addYourButtonBoxFromData(data)	Restore saved config values on page reload
+6️⃣	edit_page.html → loader loop	In layout loader loop:
+{% elif item.type == 'your_button' %} addYourButtonBoxFromData(...)
+7️⃣	user_page.html	Add render block:
+{% elif item.type == 'your_button' %}
+and a matching JS runYourButton(...) or use handleButton(...) if it's standard
+8️⃣	user_page.html → JS	Create runYourButton() if needed, to POST /run_action with { type: 'your_button', config, version }
+9️⃣	Optional: run_task() in app.py	If your button runs user Python, make sure run_task(code) supports imports etc.
+🔟	Test + Save Page	Create a button via the UI, save it, reload it, test /run_action logic
