@@ -11,7 +11,7 @@
         "database": "Supreme.db",
         "table": "bank_master",
         "upload_mode": "append",
-        "background": false
+        "background": true
       }
     },
     {
@@ -53,7 +53,26 @@
         "target": "Nupay_Upload",
         "background": false
       }
+    },
+    {
+      "type": "smart_table",
+      "label": "Summary Table",
+      "version": 1,
+      "top": 60,
+      "left": 720,
+      "config": {
+        "rows": 3,
+        "columns": 5,
+        "database": "Supreme.db",
+        "table": "sqlite_sequence",
+        "selected_cell": "R1C1",
+        "cell_code": {
+          "R1C1": "print('hello')"
+        },
+        "background": false,
+        "compare_rules": []
+      }
     }
   ],
-  "workspace_height": 1307
+  "workspace_height": 1311
 }

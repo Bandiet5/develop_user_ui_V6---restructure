@@ -5,7 +5,8 @@ from button_handlers.mini_analytics import MiniAnalyticsHandler
 from button_handlers.form import FormHandler
 from button_handlers.download import DownloadHandler
 from button_handlers.upload import UploadHandler
-
+from button_handlers.smart_table import SmartTableHandler
+from button_handlers.multi_upload import MultiUploadHandler
 
 # Map button types to their handler classes
 BUTTON_TYPES = {
@@ -14,6 +15,8 @@ BUTTON_TYPES = {
     "form": FormHandler,
     "download": DownloadHandler,
     "upload": UploadHandler,
+    "smart_table": SmartTableHandler,
+    "multi_upload": MultiUploadHandler,
 }
 
 def get_handler(button_type):

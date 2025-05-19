@@ -7,7 +7,7 @@
       "top": 20,
       "left": 20,
       "config": {
-        "code": "",
+        "code": "from test_function import hello\n\nprint('test')\nhello()",
         "database": "Supreme.db",
         "table": "nupay_upload",
         "upload_mode": "replace",
@@ -57,5 +57,5 @@
       }
     }
   ],
-  "workspace_height": 1228
+  "workspace_height": 1229
 }

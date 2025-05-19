@@ -15,9 +15,11 @@
 <div class="bottom-buttons">
     <button onclick="addButton()">➕ Add Button</button>
     <button onclick="addUploadBox()">📤 Upload File to Table</button>
+    <button onclick="addMultiUploadBox()">📤 Upload Multi Files</button>
     <button onclick="addDownloadBox()">📥 Download Table to File</button>
     <button onclick="addFormBox()">📝 Add Form Box</button>
     <button onclick="addMiniAnalytics()">📊 Add Mini Analytics</button>
+    <button onclick="addSmartTableBox()">📋 Add Smart Table</button>
     <button onclick="addAIBox()">🤖 Add AI Chat</button>
     <button onclick="saveLayout()">💾 Save</button>
     <a href="{{ url_for('developer.developer_dashboard') }}">
@@ -207,6 +209,88 @@
     document.getElementById('workspace').appendChild(div);
 }
 
+        let smartCellCode = {};
+        let selectedSmartCell = "R1C1";
+
+        function addSmartTableBox() {
+    const dbOptions = Object.keys(dbTables).map(db => `<option value="${db}">${db}</option>`).join('');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = '50px';
+    div.style.left = '50px';
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="Summary Table"><br>
+        <select class="type-selector" disabled>
+            <option value="smart_table" selected>📋 Smart Table</option>
+        </select><br>
+
+        <label>Rows: <input type="number" class="rows-input" value="3" min="1" style="width: 60px;" onchange="renderSmartGrid(this)"> </label>
+        <label>Columns: <input type="number" class="cols-input" value="5" min="1" style="width: 60px;" onchange="renderSmartGrid(this)"> </label><br>
+
+        <div class="smart-table-grid"></div>
+
+        <label>Database:
+            <select class="db-select" onchange="updateTables(this)">
+                ${dbOptions}
+            </select>
+        </label><br>
+
+        <label>Table:
+            <select class="table-select">
+                <option value="">-- Choose Table --</option>
+            </select>
+        </label><br>
+
+        <label>Python Code for Selected Cell:<br>
+            <textarea class="code-input" placeholder="e.g., df['amount'].sum()" style="width:100%; height:60px;"
+              oninput="smartCellCode[selectedSmartCell] = this.value"></textarea>
+        </label><br>
+
+        <label>Compare Rules (e.g. R1C1 == R2C2):<br>
+            <textarea class="compare-rules-input" placeholder="R1C1 == R2C2\nR3C1 == R1C2" style="width:100%; height:60px;"></textarea>
+        </label><br>
+
+        <label>
+            <input type="checkbox" class="background-check"> Run in background
+        </label><br>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+    renderSmartGrid(div);
+}
+
+
+        function renderSmartGrid(container) {
+    const box = container.closest('.button-box');
+    const rows = parseInt(box.querySelector('.rows-input').value);
+    const cols = parseInt(box.querySelector('.cols-input').value);
+
+    const gridDiv = box.querySelector('.smart-table-grid');
+    let html = `<table border="1" style="margin: 10px 0;">`;
+
+    for (let r = 1; r <= rows; r++) {
+        html += `<tr>`;
+        for (let c = 1; c <= cols; c++) {
+            const cellId = `R${r}C${c}`;
+            html += `<td style="padding:10px; cursor:pointer;" data-cell="${cellId}" onclick="selectSmartCell(this, '${cellId}', this.closest('.button-box'))">${cellId}</td>`;
+        }
+        html += `</tr>`;
+    }
+
+    html += `</table>`;
+    gridDiv.innerHTML = html;
+}
+
+        function selectSmartCell(td, id, box) {
+    selectedSmartCell = id;
+    const textarea = box.querySelector('.code-input');
+    textarea.value = smartCellCode[selectedSmartCell] || "";
+}
+
         function toggleFilterInput(select) {
             const box = select.closest('.button-box');
             const simpleSection = box.querySelector('.simple-filter-section');
@@ -266,104 +350,6 @@
         }
         
         
-        // 💾 Save page layout
-        function saveLayout() {
-        const boxes = document.querySelectorAll('.button-box');
-        const layout = [];
-        const workspace = document.getElementById('workspace');
-
-        boxes.forEach(box => {
-            const type = box.querySelector('.type-selector')?.value || 'code';
-            const label = box.querySelector('.btn-label')?.value || '';
-
-            const config = {};
-
-            switch (type) {
-                case 'ai_chat':
-                    config.prompt = box.querySelector('.ai-question')?.value || '';
-                    config.database = box.querySelector('.db-select')?.value || '';
-                    break;
-
-                case 'upload':
-                    config.code = box.querySelector('.code-input')?.value || '';
-                    config.database = box.querySelector('.db-select')?.value || '';
-                    config.table = box.querySelector('.table-select')?.value || '';
-                    config.upload_mode = box.querySelector('.upload-mode')?.value || 'append';
-                    break;
-
-                case 'download':
-                    config.code = box.querySelector('.code-input')?.value || '';
-                    config.database = box.querySelector('.db-select')?.value || '';
-                    config.table = box.querySelector('.table-select')?.value || '';
-                    config.file_format = box.querySelector('.file-format')?.value || 'csv';
-                    break;
-
-                case 'form':
-                    config.database = box.querySelector('.db-select')?.value || '';
-                    config.table = box.querySelector('.table-select')?.value || '';
-                    config.key_column = box.querySelector('.key-column')?.value || 'system_id';
-                    config.filter_mode = box.querySelector('.filter-mode')?.value || 'simple';
-                    config.sql_filter = box.querySelector('.sql-filter')?.value || '';
-                    config.python_filter = box.querySelector('.python-filter-code')?.value || '';
-                    config.edit_fields = Array.from(box.querySelectorAll('.column-list input:checked')).map(input => input.value);
-                    config.lookup_database = box.querySelector('.lookup-db-select')?.value || '';
-                    config.lookup_table = box.querySelector('.lookup-table-select')?.value || '';
-                    config.lookup_key_column = box.querySelector('.lookup-key-column')?.value || '';
-                    config.lookup_fields = Array.from(box.querySelectorAll('.lookup-column-list input:checked')).map(input => input.value);
-                    break;
-
-                case 'mini_analytics':
-                    config.database = box.querySelector('.db-select')?.value || '';
-                    config.table = box.querySelector('.table-select')?.value || '';
-                    config.code = box.querySelector('.code-input')?.value || '';
-                    config.refresh_interval = parseInt(box.querySelector('.refresh-interval')?.value || '30');
-                    config.show_chart = box.querySelector('.show-chart-check')?.checked || false;
-                    break;
-
-                case 'link':
-                    config.target = box.querySelector('.page-link')?.value || '';
-                    break;
-
-                case 'code':
-                    config.code = box.querySelector('.code-input')?.value || '';
-                    break;
-
-                default:
-                    console.warn("Unknown button type:", type);
-            }
-
-            config.background = box.querySelector('.background-check')?.checked || false;
-
-            layout.push({
-                type,
-                label,
-                top: parseInt(box.style.top) || 0,
-                left: parseInt(box.style.left) || 0,
-                version: 1,
-                config
-            });
-        });
-
-        const workspaceHeight = workspace.offsetHeight;
-
-        fetch("{{ url_for('edit_page.save_page', page_name=page_name) }}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ layout, workspace_height: workspaceHeight })
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('Failed to save');
-            return res.json();
-        })
-        .then(() => alert("✅ Layout saved!"))
-        .catch(err => {
-            console.error("Save failed:", err);
-            alert("❌ Save failed.");
-        });
-    }
-        
-    
-    
         // Build dropdowns
         function buildDatabaseTableDropdowns() {
         return `
@@ -383,7 +369,7 @@
         }
             const dbTables = {{ db_tables | tojson }};
 
-            function addButton() {
+        function addButton() {
                 addButtonFromData({
                     label: "New Button",
                     type: "code",
@@ -433,6 +419,53 @@
             file_format: "csv"
         });
         }
+
+        function addMultiUploadBox() {
+    const dbOptions = Object.keys(dbTables).map(db => `<option value="${db}">${db}</option>`).join('');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = '50px';
+    div.style.left = '50px';
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="Multi Upload"><br>
+
+        <select class="type-selector" disabled>
+            <option value="multi_upload" selected>📚 Multi Upload</option>
+        </select><br>
+
+        <label>Database:
+            <select class="db-select" onchange="updateTables(this)">
+                ${dbOptions}
+            </select>
+        </label><br>
+
+        <label>Table:
+            <select class="table-select"><option value="">-- Select Table --</option></select>
+        </label><br>
+
+        <label>Python Code:<br>
+            <textarea class="code-input" placeholder="Optional Python code..." style="width:100%; height:60px;"></textarea>
+        </label><br>
+
+        <label>
+            Upload Mode:
+            <select class="upload-mode">
+                <option value="append">Append</option>
+                <option value="replace">Replace</option>
+            </select>
+        </label>
+
+        <label>
+            <input type="checkbox" class="background-check"> Run in background
+        </label><br>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+}
 
         function updateTables(dbSelect) {
             const box = dbSelect.closest('.button-box');
@@ -603,6 +636,73 @@
     `;
 
     document.getElementById('workspace').appendChild(div);
+}
+
+        function addMultiUploadBoxFromData(data) {
+    const config = data.config || {};
+    const db = config.database || '';
+    const table = config.table || '';
+    const code = config.code || '';
+    const background = config.background ? 'checked' : '';
+    const uploadMode = config.upload_mode || 'append';
+
+    const dbOptions = Object.keys(dbTables).map(dbName =>
+        `<option value="${dbName}" ${dbName === db ? 'selected' : ''}>${dbName}</option>`
+    ).join('');
+
+    const tableOptions = (dbTables[db] || []).map(tbl =>
+        `<option value="${tbl}" ${tbl === table ? 'selected' : ''}>${tbl}</option>`
+    ).join('');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = `${data.top}px`;
+    div.style.left = `${data.left}px`;
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="${data.label || 'Multi Upload'}"><br>
+
+        <select class="type-selector" disabled>
+            <option value="multi_upload" selected>📚 Multi Upload</option>
+        </select><br>
+
+        <label>Database:
+            <select class="db-select" onchange="updateTables(this)">
+                ${dbOptions}
+            </select>
+        </label><br>
+
+        <label>Table:
+            <select class="table-select">
+                ${tableOptions}
+            </select>
+        </label><br>
+
+        <label>Upload Mode:
+            <select class="upload-mode">
+                <option value="append" ${uploadMode === 'append' ? 'selected' : ''}>Append</option>
+                <option value="replace" ${uploadMode === 'replace' ? 'selected' : ''}>Replace</option>
+            </select>
+        </label><br>
+
+        <label>Python Code:<br>
+            <textarea class="code-input" style="width:100%; height:60px;">${code}</textarea>
+        </label><br>
+
+        <label>
+            <input type="checkbox" class="background-check" ${background}>
+            Run in background
+        </label><br>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+
+    // Reload table list if db changed
+    const dbSelect = div.querySelector('.db-select');
+    updateTables(dbSelect);
+    div.querySelector('.table-select').value = table;
 }
 
 
@@ -957,6 +1057,83 @@
     }, 0);
 }
 
+
+        function addSmartTableBoxFromData(data) {
+    const config = data.config || {};
+    const db = config.database || '';
+    const table = config.table || '';
+    const rows = config.rows || 1;
+    const columns = config.columns || 1;
+    const selectedCell = config.selected_cell || 'R1C1';
+    smartCellCode = config.cell_code || {};
+    selectedSmartCell = selectedCell;
+
+    const dbOptions = Object.keys(dbTables).map(dbName =>
+        `<option value="${dbName}" ${dbName === db ? 'selected' : ''}>${dbName}</option>`
+    ).join('');
+
+    const tableOptions = (dbTables[db] || []).map(tbl =>
+        `<option value="${tbl}" ${tbl === table ? 'selected' : ''}>${tbl}</option>`
+    ).join('');
+
+    const compareRuleText = (config.compare_rules || [])
+        .map(pair => pair.join(' == '))
+        .join('\n');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = `${data.top}px`;
+    div.style.left = `${data.left}px`;
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="${data.label || 'Summary Table'}"><br>
+        <select class="type-selector" disabled>
+            <option value="smart_table" selected>📋 Smart Table</option>
+        </select><br>
+
+        <label>Rows: <input type="number" class="rows-input" value="${rows}" min="1" style="width: 60px;" onchange="renderSmartGrid(this)"> </label>
+        <label>Columns: <input type="number" class="cols-input" value="${columns}" min="1" style="width: 60px;" onchange="renderSmartGrid(this)"> </label><br>
+
+        <div class="smart-table-grid"></div>
+
+        <label>Database:
+            <select class="db-select" onchange="updateTables(this)">
+                ${dbOptions}
+            </select>
+        </label><br>
+
+        <label>Table:
+            <select class="table-select">
+                ${tableOptions}
+            </select>
+        </label><br>
+
+        <label>Python Code for Selected Cell:<br>
+            <textarea class="code-input" style="width:100%; height:60px;">${smartCellCode[selectedCell] || ''}</textarea>
+        </label><br>
+
+        <label>Compare Rules (e.g. R1C1 == R2C2):<br>
+            <textarea class="compare-rules-input" style="width:100%; height:60px;">${compareRuleText}</textarea>
+        </label><br>
+
+        <label>
+            <input type="checkbox" class="background-check" ${config.background ? 'checked' : ''}>
+            Run in background
+        </label><br>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+    renderSmartGrid(div);
+
+    const textarea = div.querySelector('.code-input');
+    textarea.addEventListener('input', () => {
+        smartCellCode[selectedSmartCell] = textarea.value;
+    });
+}
+
+
         function handleUpload(event) {
     event.preventDefault();
 
@@ -1002,6 +1179,126 @@
     });
 }
 
+        // 💾 Save page layout
+        function saveLayout() {
+        const boxes = document.querySelectorAll('.button-box');
+        const layout = [];
+        const workspace = document.getElementById('workspace');
+
+        boxes.forEach(box => {
+            const type = box.querySelector('.type-selector')?.value || 'code';
+            const label = box.querySelector('.btn-label')?.value || '';
+
+            const config = {};
+
+            switch (type) {
+                case 'ai_chat':
+                    config.prompt = box.querySelector('.ai-question')?.value || '';
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    break;
+
+                case 'upload':
+                    config.code = box.querySelector('.code-input')?.value || '';
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    config.table = box.querySelector('.table-select')?.value || '';
+                    config.upload_mode = box.querySelector('.upload-mode')?.value || 'append';
+                    break;
+
+                case 'download':
+                    config.code = box.querySelector('.code-input')?.value || '';
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    config.table = box.querySelector('.table-select')?.value || '';
+                    config.file_format = box.querySelector('.file-format')?.value || 'csv';
+                    break;
+
+                case 'form':
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    config.table = box.querySelector('.table-select')?.value || '';
+                    config.key_column = box.querySelector('.key-column')?.value || 'system_id';
+                    config.filter_mode = box.querySelector('.filter-mode')?.value || 'simple';
+                    config.sql_filter = box.querySelector('.sql-filter')?.value || '';
+                    config.python_filter = box.querySelector('.python-filter-code')?.value || '';
+                    config.edit_fields = Array.from(box.querySelectorAll('.column-list input:checked')).map(input => input.value);
+                    config.lookup_database = box.querySelector('.lookup-db-select')?.value || '';
+                    config.lookup_table = box.querySelector('.lookup-table-select')?.value || '';
+                    config.lookup_key_column = box.querySelector('.lookup-key-column')?.value || '';
+                    config.lookup_fields = Array.from(box.querySelectorAll('.lookup-column-list input:checked')).map(input => input.value);
+                    break;
+
+                case 'mini_analytics':
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    config.table = box.querySelector('.table-select')?.value || '';
+                    config.code = box.querySelector('.code-input')?.value || '';
+                    config.refresh_interval = parseInt(box.querySelector('.refresh-interval')?.value || '30');
+                    config.show_chart = box.querySelector('.show-chart-check')?.checked || false;
+                    break;
+                
+                case 'smart_table':
+                    config.rows = parseInt(box.querySelector('.rows-input')?.value || '1');
+                    config.columns = parseInt(box.querySelector('.cols-input')?.value || '1');
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    config.table = box.querySelector('.table-select')?.value || '';
+                    config.selected_cell = selectedSmartCell;
+                    config.cell_code = smartCellCode;
+                    config.background = box.querySelector('.background-check')?.checked || false;
+                    const rawRules = box.querySelector('.compare-rules-input')?.value || '';
+                    config.compare_rules = rawRules.split('\n')
+                    .map(line => line.trim().split('==').map(part => part.trim())).filter(pair => pair.length === 2);
+                    break;
+
+                case 'multi_upload':
+                    config.database = box.querySelector('.db-select')?.value || '';
+                    config.table = box.querySelector('.table-select')?.value || '';
+                    config.code = box.querySelector('.code-input')?.value || '';
+                    config.upload_mode = box.querySelector('.upload-mode')?.value || 'append';
+                    break;
+
+
+
+                case 'link':
+                    config.target = box.querySelector('.page-link')?.value || '';
+                    break;
+
+                case 'code':
+                    config.code = box.querySelector('.code-input')?.value || '';
+                    break;
+
+                default:
+                    console.warn("Unknown button type:", type);
+            }
+
+            config.background = box.querySelector('.background-check')?.checked || false;
+
+            layout.push({
+                type,
+                label,
+                top: parseInt(box.style.top) || 0,
+                left: parseInt(box.style.left) || 0,
+                version: 1,
+                config
+            });
+        });
+
+        const workspaceHeight = workspace.offsetHeight;
+
+        fetch("{{ url_for('edit_page.save_page', page_name=page_name) }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ layout, workspace_height: workspaceHeight })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to save');
+            return res.json();
+        })
+        .then(() => alert("✅ Layout saved!"))
+        .catch(err => {
+            console.error("Save failed:", err);
+            alert("❌ Save failed.");
+        });
+    } 
+    
+
+
 
         // ✅ loading layout and workspace height
         {% if workspace_height %}
@@ -1013,12 +1310,16 @@
         addUploadBoxFromData({{ item | tojson }});
             {% elif item.type == 'download' %}
         addDownloadBoxFromData({{ item | tojson }});
+            {% elif item.type == 'multi_upload' %}
+        addMultiUploadBoxFromData({{ item | tojson }});
             {% elif item.type == 'ai_chat' %}
         addAiChatBoxFromData({{ item | tojson }});
             {% elif item.type == 'form' %}
         addFormBoxFromData({{ item | tojson }});
             {% elif item.type == 'mini_analytics' %}
         addMiniAnalyticsFromData({{ item | tojson }});
+            {% elif item.type == 'smart_table' %}
+        addSmartTableBoxFromData({{ item | tojson }});
             {% else %}
         addButtonFromData({{ item | tojson }});
             {% endif %}

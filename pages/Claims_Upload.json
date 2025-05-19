@@ -45,7 +45,7 @@
           "deceased_surname",
           "date_of_death"
         ],
-        "lookup_database": "",
+        "lookup_database": "Supreme.db",
         "lookup_table": "",
         "lookup_key_column": "",
         "lookup_fields": [],
@@ -64,5 +64,5 @@
       }
     }
   ],
-  "workspace_height": 1012
+  "workspace_height": 1013
 }

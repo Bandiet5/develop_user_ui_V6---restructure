@@ -38,6 +38,14 @@
                         <input type="file" name="file" required><br>
                         <button type="submit">📤 Upload</button>
                     </form>
+                
+                {% elif item.type == 'multi_upload' %}
+                    <form onsubmit="return handleMultiUpload(event, this)">
+                        <input type="file" name="files" multiple required><br>
+                        <button type="submit">📚 Upload Multiple</button>
+                    </form>
+                    <div class="multi-upload-result" style="margin-top: 8px; font-size: 14px; color: #333;"></div>
+                
     
                 {% elif item.type == 'download' %}
                     <button onclick="handleButton(null, null, this)">📥 Download</button>
@@ -80,7 +88,10 @@
                     <button onclick="handleButton(`{{ config.code | e }}`, {{ item.background | default(false) | lower }}, this)">
                         ▶️ Run
                     </button>
-    
+
+                {% elif item.type == 'smart_table' %}
+                    <button onclick="runSmartTable(this)">📋 Run Summary Table</button>
+                    <div class="summary-table-preview"></div>
                 {% else %}
                     <button onclick="handleButton(`{{ config.code | e }}`, {{ item.background | default(false) | lower }}, this)">
                         ▶️ Run
@@ -233,8 +244,53 @@
     });
 }
 
+        function handleMultiUpload(event, formElement) {
+    event.preventDefault();
 
+    const box = formElement.closest('.button-box');
+    const files = formElement.querySelector('input[name="files"]').files;
+    const config = JSON.parse(box.dataset.config || '{}');
+    const version = parseInt(box.dataset.version || 1);
+    const runInBackground = box.dataset.background === "true";
 
+    if (!files.length) {
+        alert("❌ Please select at least one file.");
+        return false;
+    }
+
+    const formData = new FormData();
+    for (const file of files) {
+        formData.append("files", file);
+    }
+    formData.append("database", config.database || '');
+    formData.append("table", config.table || '');
+    formData.append("code", config.code || '');
+    formData.append("upload_mode", config.upload_mode || 'append'); // ✅ NEW
+    formData.append("background", runInBackground);
+    formData.append("version", version);
+
+    const resultBox = box.querySelector('.multi-upload-result');
+    resultBox.innerHTML = "⏳ Uploading...";
+
+    fetch("/upload_multi_files", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "ok") {
+            resultBox.innerHTML = `✅ Uploaded ${data.rows} rows to ${config.table}`;
+        } else {
+            resultBox.innerHTML = `❌ Error: ${data.message}`;
+        }
+    })
+    .catch(err => {
+        console.error("❌ Upload failed:", err);
+        resultBox.innerHTML = "❌ Upload failed.";
+    });
+
+    return false;
+}
 
         function handleAiChat(e, formElement) {
             e.preventDefault();
@@ -295,8 +351,6 @@
             return false;
         }
 
-
-
         // ✅ Helper to inject or update the result box
         function showAiResult(container, html, isError) {
             let resultBox = container.querySelector('.ai-result');
@@ -330,9 +384,6 @@
         setInterval(() => runMiniAnalytics(box), refreshInterval * 1000);
     });
 });
-
-         
-        
         
         async function loadFormData(event, formElement) {
     event.preventDefault();
@@ -457,9 +508,6 @@
     }
 }
 
-
-
-
         async function submitFormUpdate(e, form, db, table, keyColumn) {
             e.preventDefault();
 
@@ -483,8 +531,6 @@
                 alert("❌ Update failed: " + (data.message || "Unknown error"));
             }
         }
-
-
 
         async function runMiniAnalytics(buttonBox) {
     const db = buttonBox.getAttribute('data-db') || '';
@@ -571,6 +617,56 @@
         console.error("Error running mini analytics:", err);
         if (resultBox) resultBox.textContent = "❌ Request failed.";
     }
+}
+
+        async function runSmartTable(buttonElement) {
+    const box = buttonElement.closest('.button-box');
+    const config = JSON.parse(box.dataset.config || '{}');
+    const version = parseInt(box.dataset.version) || 1;
+
+    buttonElement.textContent = "⏳ Running...";
+
+    const res = await fetch("/run_action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            type: "smart_table",
+            config,
+            version,
+            background: false
+        })
+    });
+
+    const data = await res.json();
+    const preview = box.querySelector(".summary-table-preview");
+
+    if (data.status !== "ok") {
+        buttonElement.textContent = "❌ Failed";
+        preview.textContent = data.message || "Unknown error";
+        return;
+    }
+
+    const rows = data.table?.rows || 1;
+    const cols = data.table?.columns || 1;
+    const cells = data.table?.cells || {};
+    const highlights = new Set(data.table?.highlight || []);
+
+    let html = "<table border='1' style='margin-top:10px;'>";
+
+    for (let r = 1; r <= rows; r++) {
+        html += "<tr>";
+        for (let c = 1; c <= cols; c++) {
+            const key = `R${r}C${c}`;
+            const val = cells[key] || "";
+            const style = highlights.has(key) ? "background:#ffcccc;" : "";
+            html += `<td style="padding:8px; ${style}">${val}</td>`;
+        }
+        html += "</tr>";
+    }
+
+    html += "</table>";
+    preview.innerHTML = html;
+    buttonElement.textContent = "✅ Done!";
 }
 
     </script>

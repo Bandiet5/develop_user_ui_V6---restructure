@@ -1,0 +1,8 @@
+<h2>✏️ Editing: {{ filename }}</h2>
+
+<form method="POST" action="{{ url_for('manage_functions.save_function', filename=filename) }}">
+    <textarea name="code" style="width:100%; height:500px;">{{ code }}</textarea><br>
+    <button type="submit">💾 Save</button>
+</form>
+
+<a href="{{ url_for('manage_functions.manage_functions') }}">⬅ Back to Manage Functions</a>
