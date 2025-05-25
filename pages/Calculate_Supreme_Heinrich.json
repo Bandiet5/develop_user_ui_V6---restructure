@@ -1,0 +1,105 @@
+{
+  "layout": [
+    {
+      "type": "link",
+      "label": "Home",
+      "version": 1,
+      "top": 0,
+      "left": 1340,
+      "config": {
+        "target": "Home",
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Back to Uploads",
+      "version": 1,
+      "top": 180,
+      "left": 1340,
+      "config": {
+        "target": "Upload_data_Files",
+        "background": false
+      }
+    },
+    {
+      "type": "code",
+      "label": "Calculate Bank Fees",
+      "version": 1,
+      "top": 0,
+      "left": 0,
+      "config": {
+        "code": "from uploaded_code.supreme_h import calculate_bank_fees\ncalculate_bank_fees()",
+        "background": true
+      }
+    },
+    {
+      "type": "mini_analytics",
+      "label": "Analytics Bank Fees",
+      "version": 2,
+      "top": 200,
+      "left": 0,
+      "config": {
+        "database": "Supreme.db",
+        "table": "bank_fee",
+        "code": "Total_Members = len(df)\n\nresult = f\"Total Members : {Total_Members}\"\n",
+        "refresh_interval": 300,
+        "show_chart": false,
+        "background": false
+      }
+    },
+    {
+      "type": "code",
+      "label": "Calculate Bank Grinrod",
+      "version": 1,
+      "top": 0,
+      "left": 420,
+      "config": {
+        "code": "from uploaded_code.supreme_h import calculate_bank_grinrod\ncalculate_bank_grinrod()",
+        "background": true
+      }
+    },
+    {
+      "type": "mini_analytics",
+      "label": "Analytics Bank Grinrod Master",
+      "version": 2,
+      "top": 200,
+      "left": 420,
+      "config": {
+        "database": "Supreme.db",
+        "table": "bank_grinrod_master",
+        "code": "Total_Members = len(df)\n\nresult = f\"Total Members : {Total_Members}\"\n",
+        "refresh_interval": 300,
+        "show_chart": false,
+        "background": false
+      }
+    },
+    {
+      "type": "mini_analytics",
+      "label": "Analytics Bank Grinrod",
+      "version": 2,
+      "top": 200,
+      "left": 760,
+      "config": {
+        "database": "Supreme.db",
+        "table": "bank_grinrod",
+        "code": "Total_Members = len(df)\n\nresult = f\"Total Members : {Total_Members}\"\n",
+        "refresh_interval": 300,
+        "show_chart": false,
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Calculate Bank NuPay",
+      "version": 1,
+      "top": 0,
+      "left": 1020,
+      "config": {
+        "target": "Calculate_Bank_NuPay",
+        "background": false
+      }
+    }
+  ],
+  "workspace_height": 2675
+}

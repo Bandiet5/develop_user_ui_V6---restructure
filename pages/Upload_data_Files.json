@@ -1,0 +1,136 @@
+{
+  "layout": [
+    {
+      "type": "link",
+      "label": "Home",
+      "version": 1,
+      "top": 0,
+      "left": 1360,
+      "config": {
+        "target": "Home",
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Back to Supreme Main Page",
+      "version": 1,
+      "top": 180,
+      "left": 1360,
+      "config": {
+        "target": "Supreme",
+        "background": false
+      }
+    },
+    {
+      "type": "multi_upload",
+      "label": "Upload Bank Master Files",
+      "version": 2,
+      "top": 0,
+      "left": 0,
+      "config": {
+        "database": "Supreme.db",
+        "table": "bank_master_upload",
+        "code": "",
+        "upload_mode": "replace",
+        "background": true
+      }
+    },
+    {
+      "type": "upload",
+      "label": "Upload Bordereaux Raport",
+      "version": 1,
+      "top": 0,
+      "left": 300,
+      "config": {
+        "code": "",
+        "database": "Supreme.db",
+        "table": "bordereaux_upload",
+        "upload_mode": "replace",
+        "background": true
+      }
+    },
+    {
+      "type": "upload",
+      "label": "Upload Grinrod",
+      "version": 1,
+      "top": 0,
+      "left": 600,
+      "config": {
+        "code": "",
+        "database": "Supreme.db",
+        "table": "grinrod_upload",
+        "upload_mode": "replace",
+        "background": true
+      }
+    },
+    {
+      "type": "upload",
+      "label": "Upload Nupay",
+      "version": 1,
+      "top": 380,
+      "left": 0,
+      "config": {
+        "code": "from uploaded_code.id_clean import pad_to_13_digits\ndf['debtor_id'] = df['debtor_id'].apply(pad_to_13_digits)\n",
+        "database": "Supreme.db",
+        "table": "nupay_upload",
+        "upload_mode": "replace",
+        "background": true
+      }
+    },
+    {
+      "type": "upload",
+      "label": "Upload Refunds",
+      "version": 1,
+      "top": 380,
+      "left": 300,
+      "config": {
+        "code": "",
+        "database": "Supreme.db",
+        "table": "refunds_upload",
+        "upload_mode": "replace",
+        "background": true
+      }
+    },
+    {
+      "type": "upload",
+      "label": "Upload Claims",
+      "version": 1,
+      "top": 380,
+      "left": 600,
+      "config": {
+        "code": "",
+        "database": "Supreme.db",
+        "table": "claims_upload",
+        "upload_mode": "replace",
+        "background": true
+      }
+    },
+    {
+      "type": "link",
+      "label": "Calculate Supreme Resaults",
+      "version": 1,
+      "top": 0,
+      "left": 1000,
+      "config": {
+        "target": "Calculate_Supreme_Heinrich",
+        "background": false
+      }
+    },
+    {
+      "type": "multi_upload",
+      "label": "Multi Upload Nupay Old",
+      "version": 2,
+      "top": 780,
+      "left": 0,
+      "config": {
+        "database": "Supreme.db",
+        "table": "nupay_database",
+        "code": "from uploaded_code.id_clean import pad_to_13_digits\ndf['debtor_id'] = df['debtor_id'].apply(pad_to_13_digits)\n\ndf = df.rename(columns={'user_reference': 'policy_number'})",
+        "upload_mode": "append",
+        "background": true
+      }
+    }
+  ],
+  "workspace_height": 1972
+}

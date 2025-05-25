@@ -27,16 +27,21 @@ def edit_function(filename):
     if not os.path.isfile(file_path):
         return f"File not found: {filename}", 404
 
-    with open(file_path, 'r') as f:
-        code = f.read()
+    try:
+        with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+            code = f.read()
+    except Exception as e:
+        return f"Error reading file: {e}", 500
+
     return render_template('edit_function.html', filename=filename, code=code)
+
 
 @manage_functions_bp.route('/developer/save_function/<filename>', methods=["POST"])
 def save_function(filename):
     code = request.form.get("code", "")
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     try:
-        with open(file_path, 'w') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             f.write(code)
         flash("✅ File saved.")
     except Exception as e:

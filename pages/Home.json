@@ -12,17 +12,6 @@
       }
     },
     {
-      "type": "code",
-      "label": "Test",
-      "version": 1,
-      "top": 40,
-      "left": 420,
-      "config": {
-        "code": "from test_function import hello\n\nprint('test')\nhello()\n",
-        "background": false
-      }
-    },
-    {
       "type": "smart_table",
       "label": "Summary Table",
       "version": 1,
@@ -57,21 +46,7 @@
           ]
         ]
       }
-    },
-    {
-      "type": "multi_upload",
-      "label": "Multi Upload",
-      "version": 2,
-      "top": 260,
-      "left": 40,
-      "config": {
-        "database": "Supreme.db",
-        "table": "bank_master",
-        "code": "",
-        "upload_mode": "replace",
-        "background": true
-      }
     }
   ],
-  "workspace_height": 1579
+  "workspace_height": 1581
 }

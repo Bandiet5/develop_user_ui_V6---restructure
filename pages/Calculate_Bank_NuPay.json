@@ -1,0 +1,120 @@
+{
+  "layout": [
+    {
+      "type": "code",
+      "label": "Calculate Bank NuPay",
+      "version": 1,
+      "top": 0,
+      "left": 0,
+      "config": {
+        "code": "from uploaded_code.supreme_h import calculate_bank_nupay\ncalculate_bank_nupay()",
+        "background": true
+      }
+    },
+    {
+      "type": "form",
+      "label": "Fix Missing Policy Nymbers On NuPay",
+      "version": 1,
+      "top": 380,
+      "left": 0,
+      "config": {
+        "database": "Supreme.db",
+        "table": "bank_nupay",
+        "key_column": "system_id",
+        "filter_mode": "python",
+        "sql_filter": "",
+        "python_filter": "df = df[(df['policy_number'].isna()) | (df['policy_number'] == '')]",
+        "edit_fields": [
+          "txn_date",
+          "effective",
+          "description",
+          "amount",
+          "debtor_id",
+          "mandate_id",
+          "policy_number",
+          "product_name"
+        ],
+        "lookup_database": "Supreme.db",
+        "lookup_table": "nupay_database",
+        "lookup_key_column": "debtor_id",
+        "lookup_fields": [
+          "debtor_id"
+        ],
+        "background": false
+      }
+    },
+    {
+      "type": "mini_analytics",
+      "label": "Mini Analytics",
+      "version": 2,
+      "top": 0,
+      "left": 440,
+      "config": {
+        "database": "Supreme.db",
+        "table": "bank_nupay",
+        "code": "missing = len(df[(df['policy_number'].isna()) | (df['policy_number'] == '')])\nnot_missing = len(df) - missing\n\nresult = f\"No Policy Numbers: {missing}, Not Missing: {not_missing}\"\nchart = {\n    \"Missing\": int(missing),\n    \"Not Missing\": int(not_missing)\n}\n",
+        "refresh_interval": 3600,
+        "show_chart": true,
+        "background": false
+      }
+    },
+    {
+      "type": "code",
+      "label": "Finalize Bank Nupay",
+      "version": 1,
+      "top": 0,
+      "left": 820,
+      "config": {
+        "code": "from uploaded_code.supreme_h import finalize_bank_nupay\nfinalize_bank_nupay()",
+        "background": true
+      }
+    },
+    {
+      "type": "form",
+      "label": "Fix Product Data On NuPay",
+      "version": 1,
+      "top": 340,
+      "left": 820,
+      "config": {
+        "database": "Supreme.db",
+        "table": "bank_nupay",
+        "key_column": "system_id",
+        "filter_mode": "python",
+        "sql_filter": "",
+        "python_filter": "df = df[(df['product_name'].isna()) | (df['product_name'] == '')]",
+        "edit_fields": [
+          "effective",
+          "description",
+          "amount",
+          "debtor_id",
+          "mandate_id",
+          "policy_number",
+          "product_name"
+        ],
+        "lookup_database": "Supreme.db",
+        "lookup_table": "bordereaux_upload",
+        "lookup_key_column": " policy_number",
+        "lookup_fields": [
+          "product_name"
+        ],
+        "background": false
+      }
+    },
+    {
+      "type": "mini_analytics",
+      "label": "Mini Analytics",
+      "version": 2,
+      "top": 0,
+      "left": 1220,
+      "config": {
+        "database": "Supreme.db",
+        "table": "",
+        "code": "missing = len(df[(df['product_name'].isna()) | (df['product_name'] == '')])\nnot_missing = len(df) - missing\n\nresult = f\"No Product Name: {missing}, Not Missing: {not_missing}\"\nchart = {\n    \"Missing\": int(missing),\n    \"Not Missing\": int(not_missing)\n}\n",
+        "refresh_interval": 3600,
+        "show_chart": true,
+        "background": false
+      }
+    }
+  ],
+  "workspace_height": 1956
+}

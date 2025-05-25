@@ -7,40 +7,16 @@
         "order": 1
       },
       {
-        "name": "Heinrich_Supreme",
+        "name": "Upload_data_Files",
         "order": 2
       },
       {
-        "name": "Refunds_Upload",
+        "name": "Calculate_Supreme_Heinrich",
+        "order": 3
+      },
+      {
+        "name": "Calculate_Bank_NuPay",
         "order": 4
-      },
-      {
-        "name": "Supreme_Payment_Files",
-        "order": 5
-      },
-      {
-        "name": "Go_to_Supreme_Calculation_Page",
-        "order": 10
-      },
-      {
-        "name": "Bordereaux_Upload",
-        "order": 9999
-      },
-      {
-        "name": "Claims_Upload",
-        "order": 9999
-      },
-      {
-        "name": "Grinrod_Upload",
-        "order": 9999
-      },
-      {
-        "name": "Nupay_Upload",
-        "order": 9999
-      },
-      {
-        "name": "Riana_Supreme",
-        "order": 9999
       }
     ]
   },
@@ -53,7 +29,7 @@
     "pages": [
       {
         "name": "Home",
-        "order": 9999
+        "order": 1
       }
     ]
   }

@@ -5,9 +5,9 @@
       "label": "Heinrich Supreme",
       "version": 1,
       "top": 40,
-      "left": 40,
+      "left": 520,
       "config": {
-        "target": "Heinrich_Supreme",
+        "target": "Upload_data_Files",
         "background": false
       }
     },
@@ -16,9 +16,9 @@
       "label": "Riana Supreme",
       "version": 1,
       "top": 40,
-      "left": 340,
+      "left": 860,
       "config": {
-        "target": "Riana_Supreme",
+        "target": "Home",
         "background": false
       }
     },
@@ -27,12 +27,23 @@
       "label": "Supreme Payment Files",
       "version": 1,
       "top": 220,
-      "left": 40,
+      "left": 520,
       "config": {
-        "target": "Supreme_Payment_Files",
+        "target": "Home",
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Home",
+      "version": 1,
+      "top": 40,
+      "left": 1340,
+      "config": {
+        "target": "Home",
         "background": false
       }
     }
   ],
-  "workspace_height": 804
+  "workspace_height": 810
 }

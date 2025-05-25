@@ -223,7 +223,7 @@ def delete_page(page_name):
         flash("Unauthorized.")
         return redirect(url_for('login'))
 
-    # Delete the actual .json file
+    # 🔥 Delete the .json file
     file_path = os.path.join(PAGES_FOLDER, f"{page_name}.json")
     if os.path.exists(file_path):
         os.remove(file_path)
@@ -231,23 +231,23 @@ def delete_page(page_name):
     else:
         flash(f"Page '{page_name}' does not exist.")
 
-    # Remove from page_structure.json
+    # ✅ Update page_structure.json
     structure_path = os.path.join(PAGES_FOLDER, "page_structure.json")
     if os.path.exists(structure_path):
         with open(structure_path) as f:
             structure = json.load(f)
 
         for group in structure:
-            if page_name in group.get("pages", []):
-                group["pages"].remove(page_name)
-
-        # Optional: remove empty groups (if you'd like to keep structure cleaner)
-        # structure = [g for g in structure if g["pages"]]
+            group["pages"] = [
+                p for p in group.get("pages", [])
+                if (p.get("name") if isinstance(p, dict) else p) != page_name
+            ]
 
         with open(structure_path, 'w') as f:
             json.dump(structure, f, indent=2)
 
     return redirect(url_for('developer.developer_dashboard'))
+
 
 @developer_bp.route('/delete_group', methods=['POST'])
 def delete_group():

@@ -7,4 +7,5 @@ chart = {
 }
 
 
+
 hoe di functions moet lyk
