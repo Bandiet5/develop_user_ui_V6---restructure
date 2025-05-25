@@ -261,3 +261,4 @@ def debug_session():
 if __name__ == '__main__':
     init_users_table()
     app.run(debug=True)
+
