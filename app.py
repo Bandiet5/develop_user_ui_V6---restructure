@@ -314,4 +314,5 @@ if __name__ == '__main__':
     init_page_data_db()                # ✅ Create page tables
     from blueprints.scheduler import scheduler
     app.run(debug=True)
+    
 
