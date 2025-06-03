@@ -315,5 +315,3 @@ if __name__ == '__main__':
     from blueprints.scheduler import scheduler
     app.run(debug=True)
 
-
-
