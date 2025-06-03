@@ -29,6 +29,10 @@
       {
         "name": "Summary_Page",
         "order": 7
+      },
+      {
+        "name": "test",
+        "order": 9999
       }
     ]
   },

@@ -1,0 +1,18 @@
+{
+  "layout": [
+    {
+      "type": "link",
+      "label": "New Button",
+      "version": 1,
+      "top": 50,
+      "left": 50,
+      "config": {
+        "target": "Home",
+        "group_id": "",
+        "layout_mode": "auto",
+        "background": false
+      }
+    }
+  ],
+  "workspace_height": 802
+}

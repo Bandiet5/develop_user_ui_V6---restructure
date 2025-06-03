@@ -35,6 +35,7 @@ from blueprints.scheduler import scheduler  # This will trigger cleanup + start 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
+
 # Register blueprints
 app.register_blueprint(developer_bp)
 app.register_blueprint(edit_page_bp)
@@ -314,5 +315,5 @@ if __name__ == '__main__':
     init_page_data_db()                # ✅ Create page tables
     from blueprints.scheduler import scheduler
     app.run(debug=True)
-    
+
 
