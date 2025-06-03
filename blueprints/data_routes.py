@@ -1,15 +1,16 @@
 from flask import Blueprint, request, jsonify, send_file, session
-import sqlite3, pandas as pd, os, tempfile
+import pandas as pd, os, tempfile
 from multiprocessing import Process
 import chardet
 import getpass
+from sqlalchemy import text
+from db_config import create_company_engine
+
 import uuid  # add this import at the top
 from button_registry import get_handler
 
 # 👇 This is what was missing
 data_routes_bp = Blueprint('data_routes', __name__)
-
-DB_FOLDER = os.path.join(os.getcwd(), 'data')
 
 @data_routes_bp.route('/upload_data', methods=['POST'])
 def upload_data():
@@ -51,6 +52,7 @@ def upload_data():
         handler = handler_class(version=1, config=config)
         result = handler.run()
         return jsonify(result), 200 if result["status"] == "ok" else 400
+
 
 def run_upload_handler(handler_class, config):
     handler = handler_class(version=1, config=config)
@@ -123,18 +125,23 @@ def get_download_folder():
 DOWNLOAD_FOLDER = get_download_folder()
 
 
-def process_file_download(db_name, table_name, file_format, python_code=None):
-    try:
-        db_path = os.path.join(DB_FOLDER, db_name)
-        conn = sqlite3.connect(db_path)
-        df = pd.read_sql_query(f"SELECT * FROM {table_name}", conn)
-        conn.close()
 
+def process_file_download(db_file, table_name, file_format, python_code=None):
+    try:
+        db_name = db_file.replace('.db', '')
+        engine = create_company_engine(db_name)
+
+        # 🔄 Load data into DataFrame
+        with engine.connect() as conn:
+            df = pd.read_sql_query(text(f'SELECT * FROM "{table_name}"'), conn)
+
+        # 🧠 Run optional Python code
         if python_code:
             local_vars = {"df": df}
             exec(python_code, {}, local_vars)
             df = local_vars.get("df", df)
 
+        # 🗂️ Save to desired format
         suffix = '.csv' if file_format == 'csv' else '.xlsx'
         filename = f"{table_name}_download{suffix}"
         full_path = os.path.join(DOWNLOAD_FOLDER, filename)
@@ -150,6 +157,7 @@ def process_file_download(db_name, table_name, file_format, python_code=None):
     except Exception as e:
         print(f"❌ Download failed: {e}")
         return None
+
 
 
 @data_routes_bp.route('/download_data', methods=['POST'])

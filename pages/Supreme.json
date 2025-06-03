@@ -2,23 +2,14 @@
   "layout": [
     {
       "type": "link",
-      "label": "Heinrich Supreme",
+      "label": "Heinrich Supreme Upload Files",
       "version": 1,
-      "top": 40,
-      "left": 520,
+      "top": 500,
+      "left": 0,
       "config": {
         "target": "Upload_data_Files",
-        "background": false
-      }
-    },
-    {
-      "type": "link",
-      "label": "Riana Supreme",
-      "version": 1,
-      "top": 40,
-      "left": 860,
-      "config": {
-        "target": "Home",
+        "group_id": "Supreme",
+        "layout_mode": "auto",
         "background": false
       }
     },
@@ -26,10 +17,25 @@
       "type": "link",
       "label": "Supreme Payment Files",
       "version": 1,
-      "top": 220,
-      "left": 520,
+      "top": 500,
+      "left": 600,
       "config": {
         "target": "Home",
+        "group_id": "Supreme",
+        "layout_mode": "auto",
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Riana Supreme",
+      "version": 1,
+      "top": 500,
+      "left": 300,
+      "config": {
+        "target": "Home",
+        "group_id": "Supreme",
+        "layout_mode": "auto",
         "background": false
       }
     },
@@ -37,13 +43,56 @@
       "type": "link",
       "label": "Home",
       "version": 1,
-      "top": 40,
-      "left": 1340,
+      "top": 0,
+      "left": 1240,
       "config": {
         "target": "Home",
+        "group_id": "Go to Page",
+        "layout_mode": "auto",
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Summary Page",
+      "version": 1,
+      "top": 0,
+      "left": 1560,
+      "config": {
+        "target": "Summary_Page",
+        "group_id": "Go to Page",
+        "layout_mode": "auto",
+        "background": false
+      }
+    },
+    {
+      "type": "box_trigger",
+      "label": "Supreme",
+      "version": 1,
+      "top": 0,
+      "left": 540,
+      "config": {
+        "behavior": "show_buttons",
+        "alignment": "below",
+        "group_id": "",
+        "layout_mode": "absolute",
+        "background": false
+      }
+    },
+    {
+      "type": "box_trigger",
+      "label": "Go to Page",
+      "version": 1,
+      "top": 0,
+      "left": 920,
+      "config": {
+        "behavior": "show_buttons",
+        "alignment": "below",
+        "group_id": "",
+        "layout_mode": "absolute",
         "background": false
       }
     }
   ],
-  "workspace_height": 810
+  "workspace_height": 1219
 }

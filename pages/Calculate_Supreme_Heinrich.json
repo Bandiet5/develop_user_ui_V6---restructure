@@ -5,9 +5,11 @@
       "label": "Home",
       "version": 1,
       "top": 0,
-      "left": 1340,
+      "left": 2140,
       "config": {
         "target": "Home",
+        "group_id": "Go to Pages",
+        "layout_mode": "auto",
         "background": false
       }
     },
@@ -15,10 +17,12 @@
       "type": "link",
       "label": "Back to Uploads",
       "version": 1,
-      "top": 180,
-      "left": 1340,
+      "top": 340,
+      "left": 2140,
       "config": {
         "target": "Upload_data_Files",
+        "group_id": "Go to Pages",
+        "layout_mode": "auto",
         "background": false
       }
     },
@@ -26,10 +30,12 @@
       "type": "code",
       "label": "Calculate Bank Fees",
       "version": 1,
-      "top": 0,
+      "top": 540,
       "left": 0,
       "config": {
         "code": "from uploaded_code.supreme_h import calculate_bank_fees\ncalculate_bank_fees()",
+        "group_id": "Bank Fees",
+        "layout_mode": "auto",
         "background": true
       }
     },
@@ -37,7 +43,7 @@
       "type": "mini_analytics",
       "label": "Analytics Bank Fees",
       "version": 2,
-      "top": 200,
+      "top": 920,
       "left": 0,
       "config": {
         "database": "Supreme.db",
@@ -45,6 +51,8 @@
         "code": "Total_Members = len(df)\n\nresult = f\"Total Members : {Total_Members}\"\n",
         "refresh_interval": 300,
         "show_chart": false,
+        "group_id": "Bank Fees",
+        "layout_mode": "auto",
         "background": false
       }
     },
@@ -52,10 +60,12 @@
       "type": "code",
       "label": "Calculate Bank Grinrod",
       "version": 1,
-      "top": 0,
-      "left": 420,
+      "top": 540,
+      "left": 360,
       "config": {
         "code": "from uploaded_code.supreme_h import calculate_bank_grinrod\ncalculate_bank_grinrod()",
+        "group_id": "Bank Grinrod",
+        "layout_mode": "auto",
         "background": true
       }
     },
@@ -63,14 +73,16 @@
       "type": "mini_analytics",
       "label": "Analytics Bank Grinrod Master",
       "version": 2,
-      "top": 200,
-      "left": 420,
+      "top": 920,
+      "left": 320,
       "config": {
         "database": "Supreme.db",
         "table": "bank_grinrod_master",
-        "code": "Total_Members = len(df)\n\nresult = f\"Total Members : {Total_Members}\"\n",
+        "code": "Total_Members = len(df)\n\nresult = f\"Grinrod Master Total Members : {Total_Members}\"\n",
         "refresh_interval": 300,
         "show_chart": false,
+        "group_id": "Bank Grinrod",
+        "layout_mode": "auto",
         "background": false
       }
     },
@@ -78,28 +90,74 @@
       "type": "mini_analytics",
       "label": "Analytics Bank Grinrod",
       "version": 2,
-      "top": 200,
-      "left": 760,
+      "top": 920,
+      "left": 600,
       "config": {
         "database": "Supreme.db",
         "table": "bank_grinrod",
-        "code": "Total_Members = len(df)\n\nresult = f\"Total Members : {Total_Members}\"\n",
+        "code": "Total_Members = len(df)\n\nresult = f\"Bank Grinrod Total Members : {Total_Members}\"\n",
         "refresh_interval": 300,
         "show_chart": false,
+        "group_id": "Bank Grinrod",
+        "layout_mode": "auto",
         "background": false
       }
     },
     {
       "type": "link",
-      "label": "Calculate Bank NuPay",
+      "label": "Go to  Bank NuPay",
       "version": 1,
       "top": 0,
-      "left": 1020,
+      "left": 840,
       "config": {
         "target": "Calculate_Bank_NuPay",
+        "group_id": "",
+        "layout_mode": "absolute",
+        "background": false
+      }
+    },
+    {
+      "type": "box_trigger",
+      "label": "Bank Fees",
+      "version": 1,
+      "top": 0,
+      "left": 0,
+      "config": {
+        "behavior": "show_buttons",
+        "alignment": "below",
+        "group_id": "",
+        "layout_mode": "absolute",
+        "background": false
+      }
+    },
+    {
+      "type": "box_trigger",
+      "label": "Bank Grinrod",
+      "version": 1,
+      "top": 0,
+      "left": 380,
+      "config": {
+        "behavior": "show_buttons",
+        "alignment": "below",
+        "group_id": "",
+        "layout_mode": "absolute",
+        "background": false
+      }
+    },
+    {
+      "type": "box_trigger",
+      "label": "Go to Pages",
+      "version": 1,
+      "top": 0,
+      "left": 1800,
+      "config": {
+        "behavior": "show_buttons",
+        "alignment": "below",
+        "group_id": "",
+        "layout_mode": "absolute",
         "background": false
       }
     }
   ],
-  "workspace_height": 2675
+  "workspace_height": 2761
 }

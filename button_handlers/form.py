@@ -1,9 +1,9 @@
 import os
-import sqlite3
 import pandas as pd
-from flask import Blueprint, request, jsonify, send_file, session
+from flask import Blueprint, request, jsonify
+from sqlalchemy import text
+from db_config import create_company_engine
 from button_handlers.base import BaseButtonHandler
-
 
 form_bp = Blueprint('form_bp', __name__)
 
@@ -14,7 +14,7 @@ class FormHandler(BaseButtonHandler):
         return self.run_v1()
 
     def run_v1(self):
-        print('Start run_v1  FormHandler')
+        print('Start run_v1 FormHandler')
         print("DEBUG: config payload =", self.config)
 
         db = self.config.get("database")
@@ -36,12 +36,10 @@ class FormHandler(BaseButtonHandler):
 
         try:
             # Load base table
-            df_path = os.path.join("data", db)
-            conn = sqlite3.connect(df_path)
-            df = pd.read_sql_query(f"SELECT * FROM {table}", conn)
-            conn.close()
+            engine = create_company_engine(db.replace(".db", ""))
+            with engine.connect() as conn:
+                df = pd.read_sql_query(text(f'SELECT * FROM "{table}"'), conn)
 
-            # Ensure lookup key column is string
             if lookup_key_column and lookup_key_column in df.columns:
                 df[lookup_key_column] = df[lookup_key_column].astype(str)
 
@@ -55,10 +53,8 @@ class FormHandler(BaseButtonHandler):
                 try:
                     print("Running Python filter")
                     local_vars = {"df": df}
-                    exec(python_filter, {}, local_vars)  # ✅ TRUST user-defined full Python code
+                    exec(python_filter, {}, local_vars)
                     df = local_vars.get("df", df)
-                    if lookup_key_column in df.columns:
-                        print('Filtered df', lookup_key_column + ':', df[lookup_key_column].tolist())
                 except Exception as e:
                     return {"status": "error", "message": f"Python filter error: {e}"}
 
@@ -68,23 +64,18 @@ class FormHandler(BaseButtonHandler):
             df = df[selected_cols]
             rows = df.to_dict(orient="records")
 
-            # Lookup
+            # Optional lookup
             lookup_data = {}
             if lookup_db and lookup_table and lookup_key_column and lookup_fields:
-                lookup_path = os.path.join("data", lookup_db)
-                conn_lookup = sqlite3.connect(lookup_path)
-                lookup_df = pd.read_sql_query(f"SELECT * FROM {lookup_table}", conn_lookup)
-                conn_lookup.close()
+                engine_lookup = create_company_engine(lookup_db.replace(".db", ""))
+                with engine_lookup.connect() as conn:
+                    lookup_df = pd.read_sql_query(text(f'SELECT * FROM "{lookup_table}"'), conn)
 
                 if lookup_key_column in lookup_df.columns:
                     lookup_df[lookup_key_column] = lookup_df[lookup_key_column].astype(str)
 
                 lookup_keys = df[lookup_key_column].dropna().unique().tolist()
                 lookup_df = lookup_df[lookup_df[lookup_key_column].isin(lookup_keys)]
-
-                print("🔍 Matched lookup rows:", len(lookup_df))
-                print("First few lookup keys:", lookup_keys[:5])
-                print("First few in lookup_df:", lookup_df[lookup_key_column].head().tolist())
 
                 lookup_cols = list(dict.fromkeys([lookup_key_column] + lookup_fields))
                 lookup_df = lookup_df[lookup_cols]
@@ -96,9 +87,6 @@ class FormHandler(BaseButtonHandler):
                 }
 
             print("✅ FormHandler return:", f"{len(rows)} rows")
-            if lookup_data:
-                print("LOOKUP DF:", pd.DataFrame(lookup_data["data"]).head().to_string())
-
             return {
                 "status": "ok",
                 "rows": rows,
@@ -108,22 +96,20 @@ class FormHandler(BaseButtonHandler):
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-DATA_FOLDER = os.path.join(os.getcwd(), 'data')
+
 @form_bp.route('/submit_form_update', methods=['POST'])
 def submit_form_update():
     data = request.json
-    db = data.get('db')
+    db = data.get('db')  # e.g., "client_a.db"
     table = data.get('table')
     updates = data.get('updates', {})
 
-    db_path = os.path.join(DATA_FOLDER, db)
-
-    if not os.path.isfile(db_path):
-        return jsonify({'status': 'error', 'message': 'Database not found'})
+    if not db or not table:
+        return jsonify({'status': 'error', 'message': 'Missing database or table name'})
 
     try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        db_name = db.replace('.db', '')  # sanitize input
+        engine = create_company_engine(db_name)
 
         changes = {}
         for field_plus_id, value in updates.items():
@@ -134,15 +120,13 @@ def submit_form_update():
                 changes[record_id] = {}
             changes[record_id][field] = value
 
-        for record_id, fields in changes.items():
-            if not fields:
-                continue
-            set_clause = ', '.join([f"{field} = ?" for field in fields.keys()])
-            sql = f"UPDATE {table} SET {set_clause} WHERE system_id = ?"
-            cursor.execute(sql, list(fields.values()) + [record_id])
-
-        conn.commit()
-        conn.close()
+        with engine.begin() as conn:  # 🔒 handles commit/rollback
+            for record_id, fields in changes.items():
+                if not fields:
+                    continue
+                set_clause = ', '.join([f'"{field}" = :{field}' for field in fields.keys()])
+                sql = text(f'UPDATE "{table}" SET {set_clause} WHERE system_id = :system_id')
+                conn.execute(sql, {**fields, 'system_id': record_id})
 
         return jsonify({'status': 'ok'})
 

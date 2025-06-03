@@ -13,6 +13,7 @@
 
     <!-- these buttons must be OUTSIDE workspace! -->
 <div class="bottom-buttons">
+    <button onclick="addBoxTriggerBox()">📦 Add Trigger Box</button>
     <button onclick="addButton()">➕ Add Button</button>
     <button onclick="addUploadBox()">📤 Upload File to Table</button>
     <button onclick="addMultiUploadBox()">📤 Upload Multi Files</button>
@@ -123,6 +124,18 @@
                     </select>
                 </label>
 
+                <label>Group Box:
+                    <input type="text" class="group-id-input" placeholder="(optional)">
+                </label><br>
+
+                <label>Layout Mode:
+                    <select class="layout-mode">
+                        <option value="auto">📦 Stack Neatly</option>
+                        <option value="absolute">📍 Manual Position</option>
+                    </select>
+                </label><br>
+
+
                 <label>
                     <input type="checkbox" class="background-check"> Run in background
                 </label>
@@ -131,6 +144,7 @@
             `;
 
             document.getElementById('workspace').appendChild(div);
+
         }
 
         function addFormBox() {
@@ -203,10 +217,26 @@
             </div>
         </label><br>
 
+        <label>Group Box:
+            <input type="text" class="group-id-input" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto">📦 Stack Neatly</option>
+                <option value="absolute">📍 Manual Position</option>
+            </select>
+        </label><br>
+
+        <label>
+            <input type="checkbox" class="background-check"> Run in background
+        </label><br>
+
         <button onclick="this.parentElement.remove()">❌</button>
     `;
 
     document.getElementById('workspace').appendChild(div);
+
 }
 
         let smartCellCode = {};
@@ -252,6 +282,17 @@
             <textarea class="compare-rules-input" placeholder="R1C1 == R2C2\nR3C1 == R1C2" style="width:100%; height:60px;"></textarea>
         </label><br>
 
+        <label>Group Box:
+            <input type="text" class="group-id-input" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto">📦 Stack Neatly</option>
+                <option value="absolute">📍 Manual Position</option>
+            </select>
+        </label><br>
+
         <label>
             <input type="checkbox" class="background-check"> Run in background
         </label><br>
@@ -260,9 +301,9 @@
     `;
 
     document.getElementById('workspace').appendChild(div);
+
     renderSmartGrid(div);
 }
-
 
         function renderSmartGrid(container) {
     const box = container.closest('.button-box');
@@ -383,7 +424,50 @@
                 });
             }
 
-    
+        function addBoxTriggerBox() {
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = '50px';
+    div.style.left = '50px';
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="Trigger Box"><br>
+
+        <select class="type-selector" disabled>
+            <option value="box_trigger" selected>📦 Box Trigger</option>
+        </select><br>
+
+        <label>Trigger Behavior:
+            <select class="trigger-behavior">
+                <option value="show_buttons">Show Buttons</option>
+                <option value="auto_run">Run Linked Buttons</option>
+            </select>
+        </label><br>
+
+        <label>Show Buttons:
+            <select class="button-alignment">
+                <option value="below">Below</option>
+                <option value="right">To the Right</option>
+            </select>
+        </label><br>
+
+        <label>Group Box:
+            <input type="text" class="group-id-input" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto">📦 Stack Neatly</option>
+                <option value="absolute">📍 Manual Position</option>
+            </select>
+        </label><br>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+}
+
         function addUploadBox() {
             const firstDb = Object.keys(dbTables)[0] || "";
             const firstTable = (dbTables[firstDb] || [])[0] || "";
@@ -401,7 +485,6 @@
             });
         }
         
-    
         function addDownloadBox() {
             const firstDb = Object.keys(dbTables)[0] || "";
             const firstTable = (dbTables[firstDb] || [])[0] || "";
@@ -419,6 +502,63 @@
             file_format: "csv"
         });
         }
+
+        function addMiniAnalytics() {
+    const dbOptions = Object.keys(dbTables).map(db => `<option value="${db}">${db}</option>`).join('');
+
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = '50px';
+    div.style.left = '50px';
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="Mini Analytics"><br>
+
+        <select class="type-selector" disabled>
+            <option value="mini_analytics" selected>📊 Mini Analytics</option>
+        </select><br>
+
+        <label>Database:
+            <select class="db-select" onchange="updateTables(this)">
+                ${dbOptions}
+            </select>
+        </label><br>
+
+        <label>Table:
+            <select class="table-select">
+                <option value="">-- Choose Table --</option>
+            </select>
+        </label><br>
+
+        <label>Python Code:<br>
+            <textarea class="code-input" placeholder="e.g., count = df['id_number'].isna().sum()" style="width:100%; height:60px;"></textarea>
+        </label><br>
+
+        <label>
+            <input type="checkbox" class="show-chart-check">
+            Show Pie Chart
+        </label><br>
+
+        <label>Refresh Interval (seconds):
+            <input type="number" class="refresh-interval" value="30" min="5" style="width:60px;">
+        </label><br>
+
+        <label>Group Box:
+            <input type="text" class="group-id-input" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto">📦 Stack Neatly</option>
+                <option value="absolute">📍 Manual Position</option>
+            </select>
+        </label><br>
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    document.getElementById('workspace').appendChild(div);
+
+}
 
         function addMultiUploadBox() {
     const dbOptions = Object.keys(dbTables).map(db => `<option value="${db}">${db}</option>`).join('');
@@ -461,10 +601,22 @@
             <input type="checkbox" class="background-check"> Run in background
         </label><br>
 
+        <label>Group Box:
+            <input type="text" class="group-id-input" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto">📦 Stack Neatly</option>
+                <option value="absolute">📍 Manual Position</option>
+            </select>
+        </label><br>
+
         <button onclick="this.parentElement.remove()">❌</button>
     `;
 
     document.getElementById('workspace').appendChild(div);
+
 }
 
         function updateTables(dbSelect) {
@@ -481,6 +633,8 @@
                 });
             }
         }
+
+        // FromData
 
         function addButtonFromData(data) {
     const config = data.config || {};
@@ -514,12 +668,22 @@
             Run in background
         </label>
 
+        <label>Group Box:
+            <input type="text" class="group-id-input" value="${config.group_id || ''}" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto" ${config.layout_mode === 'auto' ? 'selected' : ''}>📦 Stack Neatly</option>
+                <option value="absolute" ${config.layout_mode === 'absolute' ? 'selected' : ''}>📍 Manual Position</option>
+            </select>
+        </label><br>
+
         <button onclick="this.parentElement.remove()">❌</button>
     `;
 
-    document.getElementById('workspace').appendChild(div);
+    appendButtonWithGrouping(div, config);
 }
-
 
         function addUploadBoxFromData(data) {
     const config = data.config || {};
@@ -575,13 +739,23 @@
             Run in background
         </label>
 
+        <label>Group Box:
+            <input type="text" class="group-id-input" value="${config.group_id || ''}" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto" ${config.layout_mode === 'auto' ? 'selected' : ''}>📦 Stack Neatly</option>
+                <option value="absolute" ${config.layout_mode === 'absolute' ? 'selected' : ''}>📍 Manual Position</option>
+            </select>
+        </label><br>
+
         <button onclick="handleUpload(event)">📤 Upload</button>
         <button onclick="this.parentElement.remove()">❌</button>
     `;
 
-    document.getElementById('workspace').appendChild(div);
+    appendButtonWithGrouping(div, config);
 }
-
 
         function addDownloadBoxFromData(data) {
     const config = data.config || {};
@@ -632,10 +806,21 @@
             Run in background
         </label>
 
+        <label>Group Box:
+            <input type="text" class="group-id-input" value="${config.group_id || ''}" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto" ${config.layout_mode === 'auto' ? 'selected' : ''}>📦 Stack Neatly</option>
+                <option value="absolute" ${config.layout_mode === 'absolute' ? 'selected' : ''}>📍 Manual Position</option>
+            </select>
+        </label><br>
+
         <button onclick="this.parentElement.remove()">❌</button>
     `;
 
-    document.getElementById('workspace').appendChild(div);
+    appendButtonWithGrouping(div, config);
 }
 
         function addMultiUploadBoxFromData(data) {
@@ -694,17 +879,27 @@
             Run in background
         </label><br>
 
+        <label>Group Box:
+            <input type="text" class="group-id-input" value="${config.group_id || ''}" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto" ${config.layout_mode === 'auto' ? 'selected' : ''}>📦 Stack Neatly</option>
+                <option value="absolute" ${config.layout_mode === 'absolute' ? 'selected' : ''}>📍 Manual Position</option>
+            </select>
+        </label><br>
+
         <button onclick="this.parentElement.remove()">❌</button>
     `;
 
-    document.getElementById('workspace').appendChild(div);
+    appendButtonWithGrouping(div, config);
 
     // Reload table list if db changed
     const dbSelect = div.querySelector('.db-select');
     updateTables(dbSelect);
     div.querySelector('.table-select').value = table;
 }
-
 
         function addAiChatBoxFromData(data) {
     const config = data.config || {};
@@ -745,10 +940,21 @@
             Run in background
         </label><br>
 
+        <label>Group Box:
+            <input type="text" class="group-id-input" value="${config.group_id || ''}" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto" ${config.layout_mode === 'auto' ? 'selected' : ''}>📦 Stack Neatly</option>
+                <option value="absolute" ${config.layout_mode === 'absolute' ? 'selected' : ''}>📍 Manual Position</option>
+            </select>
+        </label><br>
+
         <button onclick="this.parentElement.remove()">❌</button>
     `;
 
-    document.getElementById('workspace').appendChild(div);
+    appendButtonWithGrouping(div, config);
 }
 
         function addFormBoxFromData(data) {
@@ -848,10 +1054,21 @@
             </div>
         </label><br>
 
+        <label>Group Box:
+            <input type="text" class="group-id-input" value="${config.group_id || ''}" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto" ${config.layout_mode === 'auto' ? 'selected' : ''}>📦 Stack Neatly</option>
+                <option value="absolute" ${config.layout_mode === 'absolute' ? 'selected' : ''}>📍 Manual Position</option>
+            </select>
+        </label><br>
+
         <button onclick="this.parentElement.remove()">❌</button>
     `;
 
-    document.getElementById('workspace').appendChild(div);
+    appendButtonWithGrouping(div, config);
 
     // ✅ Fix: force db+table repopulation and column loading
     const dbSelect = div.querySelector('.db-select');
@@ -886,7 +1103,6 @@
             columnListDiv.innerHTML = '❌ Error loading columns';
         });
 }
-
 
         function updateLookupTables(select) {
     const box = select.closest('.button-box');
@@ -942,51 +1158,6 @@
         });
 }
     
-        function addMiniAnalytics() {
-    const dbOptions = Object.keys(dbTables).map(db => `<option value="${db}">${db}</option>`).join('');
-
-    const div = document.createElement('div');
-    div.className = 'button-box';
-    div.style.top = '50px';
-    div.style.left = '50px';
-    div.innerHTML = `
-        <input type="text" class="btn-label" value="Mini Analytics"><br>
-
-        <select class="type-selector" disabled>
-            <option value="mini_analytics" selected>📊 Mini Analytics</option>
-        </select><br>
-
-        <label>Database:
-            <select class="db-select" onchange="updateTables(this)">
-                ${dbOptions}
-            </select>
-        </label><br>
-
-        <label>Table:
-            <select class="table-select">
-                <option value="">-- Choose Table --</option>
-            </select>
-        </label><br>
-
-        <label>Python Code:<br>
-            <textarea class="code-input" placeholder="e.g., count = df['id_number'].isna().sum()" style="width:100%; height:60px;"></textarea>
-        </label><br>
-
-        <label>
-            <input type="checkbox" class="show-chart-check">
-            Show Pie Chart
-        </label><br>
-
-        <label>Refresh Interval (seconds):
-            <input type="number" class="refresh-interval" value="30" min="5" style="width:60px;">
-        </label><br>
-
-        <button onclick="this.parentElement.remove()">❌</button>
-    `;
-
-    document.getElementById('workspace').appendChild(div);
-}
-
         function addMiniAnalyticsFromData(data) {
     const config = data.config || {};
     const db = config.database || '';
@@ -1040,10 +1211,21 @@
             <input type="number" class="refresh-interval" value="${refreshInterval}" min="5" style="width:60px;">
         </label><br>
 
+        <label>Group Box:
+            <input type="text" class="group-id-input" value="${config.group_id || ''}" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto" ${config.layout_mode === 'auto' ? 'selected' : ''}>📦 Stack Neatly</option>
+                <option value="absolute" ${config.layout_mode === 'absolute' ? 'selected' : ''}>📍 Manual Position</option>
+            </select>
+        </label><br>
+
         <button onclick="this.parentElement.remove()">❌</button>
     `;
 
-    document.getElementById('workspace').appendChild(div);
+    appendButtonWithGrouping(div, config);
 
     // ✅ Ensure correct database -> table loading
     const dbSelect = div.querySelector('.db-select');
@@ -1056,7 +1238,6 @@
         tableSelect.value = table;
     }, 0);
 }
-
 
         function addSmartTableBoxFromData(data) {
     const config = data.config || {};
@@ -1121,16 +1302,103 @@
             Run in background
         </label><br>
 
+        <label>Group Box:
+            <input type="text" class="group-id-input" value="${config.group_id || ''}" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto" ${config.layout_mode === 'auto' ? 'selected' : ''}>📦 Stack Neatly</option>
+                <option value="absolute" ${config.layout_mode === 'absolute' ? 'selected' : ''}>📍 Manual Position</option>
+            </select>
+        </label><br>
+
         <button onclick="this.parentElement.remove()">❌</button>
     `;
 
-    document.getElementById('workspace').appendChild(div);
+    appendButtonWithGrouping(div, config);
     renderSmartGrid(div);
 
     const textarea = div.querySelector('.code-input');
     textarea.addEventListener('input', () => {
         smartCellCode[selectedSmartCell] = textarea.value;
     });
+}
+
+        function addBoxTriggerBoxFromData(data) {
+    const config = data.config || {};
+    const div = document.createElement('div');
+    div.className = 'button-box';
+    div.style.top = (data.top || 0) + 'px';
+    div.style.left = (data.left || 0) + 'px';
+
+    div.innerHTML = `
+        <input type="text" class="btn-label" value="${data.label || 'Trigger Box'}"><br>
+
+        <select class="type-selector" disabled>
+            <option value="box_trigger" selected>📦 Box Trigger</option>
+        </select><br>
+
+        <label>Trigger Behavior:
+            <select class="trigger-behavior">
+                <option value="show_buttons" ${config.behavior === 'show_buttons' ? 'selected' : ''}>Show Buttons</option>
+                <option value="auto_run" ${config.behavior === 'auto_run' ? 'selected' : ''}>Run Linked</option>
+            </select>
+        </label><br>
+
+        <label>Show Buttons:
+            <select class="button-alignment">
+                <option value="below" ${config.alignment === 'below' ? 'selected' : ''}>Below</option>
+                <option value="right" ${config.alignment === 'right' ? 'selected' : ''}>To the Right</option>
+            </select>
+        </label><br>
+        
+        <label>Group Box:
+            <input type="text" class="group-id-input" value="${config.group_id || ''}" placeholder="(optional)">
+        </label><br>
+
+        <label>Layout Mode:
+            <select class="layout-mode">
+                <option value="auto" ${config.layout_mode === 'auto' ? 'selected' : ''}>📦 Stack Neatly</option>
+                <option value="absolute" ${config.layout_mode === 'absolute' ? 'selected' : ''}>📍 Manual Position</option>
+            </select>
+        </label><br>
+
+
+        <button onclick="this.parentElement.remove()">❌</button>
+    `;
+
+    appendButtonWithGrouping(div, config);
+
+}
+
+        function appendButtonWithGrouping(div, config) {
+    const layoutMode = config.layout_mode || 'auto';
+    const groupId = config.group_id || '';
+    let parent = document.getElementById('workspace');
+
+    if (groupId && layoutMode === 'auto') {
+        let groupDiv = document.querySelector(`.trigger-button-container[data-group="${groupId}"]`);
+
+        if (!groupDiv) {
+            groupDiv = document.createElement('div');
+            groupDiv.className = 'trigger-button-container below';
+            groupDiv.dataset.group = groupId;
+
+            const triggerBox = Array.from(document.querySelectorAll('.button-box'))
+                .find(box => box.querySelector('.btn-label')?.value === groupId);
+
+            if (triggerBox) {
+                triggerBox.insertAdjacentElement('afterend', groupDiv);
+            } else {
+                parent.appendChild(groupDiv); // fallback
+            }
+        }
+
+        parent = groupDiv;
+    }
+
+    parent.appendChild(div);
 }
 
 
@@ -1253,6 +1521,10 @@
                     config.upload_mode = box.querySelector('.upload-mode')?.value || 'append';
                     break;
 
+                case 'box_trigger':
+                    config.behavior = box.querySelector('.trigger-behavior')?.value || 'show_buttons';
+                    config.alignment = box.querySelector('.button-alignment')?.value || 'below';
+                    break;
 
 
                 case 'link':
@@ -1266,17 +1538,24 @@
                 default:
                     console.warn("Unknown button type:", type);
             }
-
+            // ✅ Add group_id to all configs if present
+            config.group_id = box.querySelector('.group-id-input')?.value || '';
+            config.layout_mode = box.querySelector('.layout-mode')?.value || 'auto';
             config.background = box.querySelector('.background-check')?.checked || false;
 
-            layout.push({
+            const layoutItem = {
                 type,
                 label,
-                top: parseInt(box.style.top) || 0,
-                left: parseInt(box.style.left) || 0,
                 version: 1,
                 config
-            });
+            };
+
+            // Only include position for absolute layout
+            layoutItem.top = parseInt(box.style.top) || 0;
+            layoutItem.left = parseInt(box.style.left) || 0;
+
+            layout.push(layoutItem);
+
         });
 
         const workspaceHeight = workspace.offsetHeight;
@@ -1318,6 +1597,8 @@
         addFormBoxFromData({{ item | tojson }});
             {% elif item.type == 'mini_analytics' %}
         addMiniAnalyticsFromData({{ item | tojson }});
+            {% elif item.type == 'box_trigger' %}
+        addBoxTriggerBoxFromData({{ item | tojson }});
             {% elif item.type == 'smart_table' %}
         addSmartTableBoxFromData({{ item | tojson }});
             {% else %}

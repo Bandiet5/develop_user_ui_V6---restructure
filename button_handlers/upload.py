@@ -1,8 +1,9 @@
 import os
 import uuid
 import pandas as pd
-import sqlite3
 import chardet
+from sqlalchemy import text, inspect
+from db_config import create_company_engine
 
 DB_FOLDER = os.path.join(os.getcwd(), "data")
 
@@ -48,7 +49,6 @@ class UploadHandler:
 
         return best_row if max_matches >= 2 else 0
 
-
     def run(self):
         try:
             db_name = self.config.get('database')
@@ -62,16 +62,19 @@ class UploadHandler:
 
             print(f"[UPLOAD] {file_path} -> {db_name}.{table_name} (mode: {upload_mode})")
 
-            db_path = os.path.join(DB_FOLDER, db_name)
-            conn = sqlite3.connect(db_path)
-            cursor = conn.execute(f"PRAGMA table_info({table_name})")
-            table_columns = [row[1] for row in cursor.fetchall()]
-            conn.close()
+            db_clean = db_name.replace(".db", "")
+            engine = create_company_engine(db_clean)
+
+            inspector = inspect(engine)
+            if table_name not in inspector.get_table_names():
+                return {'status': 'error', 'message': f"Table '{table_name}' does not exist in {db_name}"}
+
+            table_columns = [col['name'] for col in inspector.get_columns(table_name)]
 
             encoding = self.detect_encoding(file_path)
             header_row = self.detect_header_row(file_path, encoding, table_columns)
 
-            # ✅ Force read all values as strings
+            # Read file with correct encoding and header skip
             if file_path.endswith('.csv'):
                 df = pd.read_csv(file_path, dtype=str, encoding=encoding, skiprows=header_row, engine='python', on_bad_lines='skip')
             else:
@@ -82,7 +85,7 @@ class UploadHandler:
 
             df.columns = [normalize(c) for c in df.columns]
 
-            # ✅ Ensure system_id is present and valid
+            # Ensure system_id
             if 'system_id' not in df.columns:
                 df['system_id'] = [str(uuid.uuid4()) for _ in range(len(df))]
             else:
@@ -90,33 +93,29 @@ class UploadHandler:
                     lambda x: str(x) if pd.notnull(x) and str(x).strip() else str(uuid.uuid4())
                 )
 
-            # ✅ Optional: run any injected code
+            # Injected Python code
             if python_code:
                 print(f"[DEBUG] Running injected code:\n{python_code}")
-                local_vars = {'df': df}        
+                local_vars = {'df': df}
                 try:
                     exec(python_code, {}, local_vars)
                     df = local_vars.get('df', df)
                 except Exception as e:
                     print(f"[EXEC ERROR] {e}")
 
-            # ✅ Filter only matching columns, keep all as strings
+            # Filter only columns that match table schema
             columns_to_insert = [col for col in table_columns if col in df.columns]
             df = df[columns_to_insert].astype(str)
-
-            # 🔧 Fix string 'nan' before inserting
             df = df.replace(['nan', 'NaN'], '', regex=True)
 
             print("[DEBUG] Final DataFrame before insert:")
             print(df.dtypes)
             print(df.head(3).to_dict(orient='records'))
-            print("Columns to insert:", columns_to_insert)  
+            print("Columns to insert:", columns_to_insert)
 
-            # ✅ Save to database
-            conn = sqlite3.connect(db_path)
+            # Insert into PostgreSQL
             if_exists = 'replace' if upload_mode == 'replace' else 'append'
-            df.to_sql(table_name, conn, if_exists=if_exists, index=False)
-            conn.close()
+            df.to_sql(table_name, engine, if_exists=if_exists, index=False, method='multi')
 
             print(f"✅ Upload complete ({if_exists})")
             return {'status': 'ok', 'rows': len(df)}

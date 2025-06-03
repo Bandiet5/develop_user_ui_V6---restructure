@@ -23,7 +23,7 @@ body {
     border-radius: 6px;
     font-weight: bold;
     text-align: center;
-    margin: 4px;
+    margin: 0px;
     min-width: 260px;
     width: auto;
     max-width: 100%;
@@ -158,4 +158,40 @@ a.logout {
     background-size: 10px 5px;
     padding-right: 24px;
 }
+
+
+
+.trigger-button-container.right {
+    display: flex;
+    gap: 10px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+.trigger-button-container.below {
+    display: flex;
+    gap: 10px;
+    flex-direction: column;
+}
+
+/* Ensure consistent padding around all trigger button groups */
+.trigger-button-container {
+    margin-top: 12px;
+}
+
+/* Make sure each button-box has consistent width and separation */
+.trigger-button-container .button-box {
+    width: 220px; /* or inherit from item.width if dynamic */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    border-radius: 8px;
+}
+
+/* Optional: add transition for smooth show/hide */
+.trigger-button-container {
+    transition: all 0.3s ease;
+}
+
+.trigger-button-container {
+    z-index: 2;
+  }
 

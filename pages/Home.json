@@ -2,51 +2,17 @@
   "layout": [
     {
       "type": "link",
-      "label": "Go to Supreme",
+      "label": "Supreme",
       "version": 1,
-      "top": 40,
-      "left": 40,
+      "top": 0,
+      "left": 0,
       "config": {
         "target": "Supreme",
+        "group_id": "",
+        "layout_mode": "auto",
         "background": false
-      }
-    },
-    {
-      "type": "smart_table",
-      "label": "Summary Table",
-      "version": 1,
-      "top": 40,
-      "left": 720,
-      "config": {
-        "rows": 3,
-        "columns": 5,
-        "database": "Supreme.db",
-        "table": "claims",
-        "selected_cell": "R3C5",
-        "cell_code": {
-          "R1C1": "print('Supreme:')",
-          "R1C2": "print(15)",
-          "R1C3": "print('Supreme:')",
-          "R1C4": "print(15)",
-          "R2C1": "print('Grinrod:')",
-          "R2C2": "print(15)",
-          "R2C3": "print('Grinrod:')",
-          "R2C4": "print(14)",
-          "R3C5": "from test_function import hello\n\nhello()"
-        },
-        "background": true,
-        "compare_rules": [
-          [
-            "R1C2",
-            "R2C2"
-          ],
-          [
-            "R1C4",
-            "R2C4"
-          ]
-        ]
       }
     }
   ],
-  "workspace_height": 1581
+  "workspace_height": 887
 }

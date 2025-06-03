@@ -2,15 +2,19 @@
 
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 import os, json
-import sqlite3
+from sqlalchemy import create_engine, text, inspect
+from db_config import create_company_engine, get_postgres_admin_engine, get_app_engine
+
 from button_registry import BUTTON_TYPES
 from button_registry import get_handler
+
 
 
 edit_page_bp = Blueprint('edit_page', __name__)
 
 PAGES_FOLDER = os.path.join(os.getcwd(), 'pages')
 os.makedirs(PAGES_FOLDER, exist_ok=True)
+
 
 @edit_page_bp.route('/edit/<page_name>')
 def edit_page(page_name):
@@ -25,125 +29,106 @@ def edit_page(page_name):
         with open(filepath) as f:
             data = json.load(f)
 
-        # 🔥 New: support both old and new file formats
         if isinstance(data, dict) and 'layout' in data:
             layout = data.get('layout', [])
             workspace_height = data.get('workspace_height', 800)
         else:
-            layout = data  # legacy support (pure list)
+            layout = data  # legacy format
 
     # 📄 List all existing pages (for link dropdown)
-    pages = [f.replace('.json', '') for f in os.listdir(PAGES_FOLDER) if f.endswith('.json') and f.replace('.json', '') != page_name]
+    pages = [
+        f.replace('.json', '')
+        for f in os.listdir(PAGES_FOLDER)
+        if f.endswith('.json') and f.replace('.json', '') != page_name
+    ]
 
-    # 🗃️ List databases and their tables
-    DB_FOLDER = os.path.join(os.getcwd(), 'data')
-    databases = [f for f in os.listdir(DB_FOLDER) if f.endswith('.db')]
+    # ✅ NEW: Get live PostgreSQL database + table info
+    databases, db_tables = get_postgres_db_and_tables()
 
-    db_tables = {}
-    for db in databases:
-        try:
-            conn = sqlite3.connect(os.path.join(DB_FOLDER, db))
-            c = conn.cursor()
-            c.execute("SELECT name FROM sqlite_master WHERE type='table'")
-            db_tables[db] = [t[0] for t in c.fetchall()]
-            conn.close()
-        except Exception as e:
-            print(f"❌ Error reading {db}: {e}")
-            db_tables[db] = []
-
-    # ✅ Pass everything to the template
     return render_template(
         'edit_page.html',
         page_name=page_name,
         layout=layout,
-        workspace_height=workspace_height,  # ⬅️ now we pass it!
+        workspace_height=workspace_height,
         pages=pages,
         databases=databases,
         db_tables=db_tables
     )
 
-
 # edit_page.py (top of file)
 PAGE_DB_PATH = os.path.join(os.getcwd(), 'data', 'page_data.db')
 
 def init_page_data_db():
-    conn = sqlite3.connect(PAGE_DB_PATH)
-    c = conn.cursor()
+    engine = get_app_engine()
 
-    # Latest layout per page
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS pages (
-            page_name TEXT PRIMARY KEY,
-            layout_json TEXT,
-            workspace_height INTEGER,
-            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+    with engine.connect() as conn:
+        conn.execute(text('''
+            CREATE TABLE IF NOT EXISTS pages (
+                page_name TEXT PRIMARY KEY,
+                layout_json TEXT,
+                workspace_height INTEGER,
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        '''))
 
-    # Version history table with time-based recovery
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS page_versions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            page_name TEXT,
-            layout_json TEXT,
-            workspace_height INTEGER,
-            saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+        conn.execute(text('''
+            CREATE TABLE IF NOT EXISTS page_versions (
+                id SERIAL PRIMARY KEY,
+                page_name TEXT,
+                layout_json TEXT,
+                workspace_height INTEGER,
+                saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        '''))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
 
-
-init_page_data_db()
 
 def check_and_sync_button_schema(layout):
-    db_path = PAGE_DB_PATH
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    # Create button_config table if not exists
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS button_config (
-            type TEXT PRIMARY KEY,
-            config_json TEXT
-        )
-    ''')
-
+    engine = get_app_engine()
     updated_types = []
 
-    for button in layout:
-        btn_type = button.get("type")
-        config = button.get("config", {})
-
-        # Lookup current saved config for this type
-        cursor.execute("SELECT config_json FROM button_config WHERE type = ?", (btn_type,))
-        row = cursor.fetchone()
-
-        if not row:
-            # First time we've seen this type → save its schema
-            cursor.execute(
-                "INSERT INTO button_config (type, config_json) VALUES (?, ?)",
-                (btn_type, json.dumps(config))
+    with engine.connect() as conn:
+        # 🛠️ Ensure table exists
+        conn.execute(text('''
+            CREATE TABLE IF NOT EXISTS button_config (
+                type TEXT PRIMARY KEY,
+                config_json TEXT
             )
-        else:
-            saved_config = json.loads(row[0])
-            new_keys = set(config.keys()) - set(saved_config.keys())
+        '''))
 
-            if new_keys:
-                # Merge and save the new schema
-                merged_config = {**saved_config}
-                for k in new_keys:
-                    merged_config[k] = ""
+        for button in layout:
+            btn_type = button.get("type")
+            config = button.get("config", {})
 
-                cursor.execute(
-                    "UPDATE button_config SET config_json = ? WHERE type = ?",
-                    (json.dumps(merged_config), btn_type)
+            # 🔍 Fetch saved config
+            result = conn.execute(
+                text("SELECT config_json FROM button_config WHERE type = :type"),
+                {'type': btn_type}
+            ).fetchone()
+
+            if not result:
+                # First time: insert config
+                conn.execute(
+                    text("INSERT INTO button_config (type, config_json) VALUES (:type, :config)"),
+                    {'type': btn_type, 'config': json.dumps(config)}
                 )
-                updated_types.append((btn_type, merged_config))
+            else:
+                saved_config = json.loads(result[0])
+                new_keys = set(config.keys()) - set(saved_config.keys())
 
-    conn.commit()
-    conn.close()
+                if new_keys:
+                    merged_config = {**saved_config}
+                    for k in new_keys:
+                        merged_config[k] = ""
+
+                    conn.execute(
+                        text("UPDATE button_config SET config_json = :config WHERE type = :type"),
+                        {'type': btn_type, 'config': json.dumps(merged_config)}
+                    )
+                    updated_types.append((btn_type, merged_config))
+
+        conn.commit()
 
     if updated_types:
         patch_pages_with_missing_keys(updated_types)
@@ -178,56 +163,67 @@ def patch_pages_with_missing_keys(updated_types):
 
 #######################################
 # save the page
+
 def save_page_to_database(page_name, layout, workspace_height):
     try:
-        conn = sqlite3.connect(PAGE_DB_PATH)
-        c = conn.cursor()
+        engine = get_app_engine()
 
-        # Save latest snapshot
-        c.execute('''
-            INSERT INTO pages (page_name, layout_json, workspace_height)
-            VALUES (?, ?, ?)
-            ON CONFLICT(page_name) DO UPDATE SET
-                layout_json=excluded.layout_json,
-                workspace_height=excluded.workspace_height,
-                last_updated=CURRENT_TIMESTAMP
-        ''', (page_name, json.dumps(layout), workspace_height))
+        with engine.connect() as conn:
+            # ⬆️ UPSERT into `pages` table
+            conn.execute(text('''
+                INSERT INTO pages (page_name, layout_json, workspace_height)
+                VALUES (:page_name, :layout, :height)
+                ON CONFLICT (page_name) DO UPDATE SET
+                    layout_json = EXCLUDED.layout_json,
+                    workspace_height = EXCLUDED.workspace_height,
+                    last_updated = CURRENT_TIMESTAMP
+            '''), {
+                'page_name': page_name,
+                'layout': json.dumps(layout),
+                'height': workspace_height
+            })
 
-        # Insert version entry
-        c.execute('''
-            INSERT INTO page_versions (page_name, layout_json, workspace_height)
-            VALUES (?, ?, ?)
-        ''', (page_name, json.dumps(layout), workspace_height))
+            # ➕ Add version entry
+            conn.execute(text('''
+                INSERT INTO page_versions (page_name, layout_json, workspace_height)
+                VALUES (:page_name, :layout, :height)
+            '''), {
+                'page_name': page_name,
+                'layout': json.dumps(layout),
+                'height': workspace_height
+            })
 
-        # Check total version count
-        c.execute('SELECT COUNT(*) FROM page_versions WHERE page_name = ?', (page_name,))
-        total_versions = c.fetchone()[0]
+            # 🔢 Count total versions
+            result = conn.execute(text('''
+                SELECT COUNT(*) FROM page_versions WHERE page_name = :page_name
+            '''), {'page_name': page_name})
+            total_versions = result.scalar()
 
-        if total_versions > 5:
-            # ✅ Only consider versions older than today
-            c.execute('''
-                SELECT id FROM page_versions
-                WHERE page_name = ? AND date(saved_at) < date('now')
-                ORDER BY saved_at ASC
-            ''', (page_name,))
-            old_ids = [row[0] for row in c.fetchall()]
+            if total_versions > 5:
+                # 🧹 Trim old versions older than today
+                old_ids_result = conn.execute(text('''
+                    SELECT id FROM page_versions
+                    WHERE page_name = :page_name AND saved_at::date < CURRENT_DATE
+                    ORDER BY saved_at ASC
+                '''), {'page_name': page_name})
 
-            # Only delete enough to keep 5
-            to_delete = max(0, total_versions - 5)
-            ids_to_remove = old_ids[:to_delete]
+                old_ids = [row[0] for row in old_ids_result.fetchall()]
+                to_delete = max(0, total_versions - 5)
+                ids_to_remove = old_ids[:to_delete]
 
-            if ids_to_remove:
-                c.execute(f'''
-                    DELETE FROM page_versions
-                    WHERE id IN ({','.join(['?'] * len(ids_to_remove))})
-                ''', ids_to_remove)
+                if ids_to_remove:
+                    placeholders = ','.join([f':id{i}' for i in range(len(ids_to_remove))])
+                    param_dict = {f'id{i}': id_ for i, id_ in enumerate(ids_to_remove)}
 
-        conn.commit()
-        conn.close()
+                    conn.execute(
+                        text(f'DELETE FROM page_versions WHERE id IN ({placeholders})'),
+                        param_dict
+                    )
+
+            conn.commit()
 
     except Exception as e:
         print(f"❌ Failed to save page '{page_name}' to DB:", e)
-
 
 @edit_page_bp.route('/save_page/<page_name>', methods=['POST'])
 def save_page(page_name):
@@ -272,41 +268,46 @@ def save_page(page_name):
 
 
 # Load database & table list
-DB_FOLDER = os.path.join(os.getcwd(), 'data')
-databases = [f for f in os.listdir(DB_FOLDER) if f.endswith('.db')]
 
-db_tables = {}
-for db in databases:
+from db_config import get_postgres_admin_engine
+
+def get_postgres_db_and_tables():
+    result = {}
     try:
-        conn = sqlite3.connect(os.path.join(DB_FOLDER, db))
-        c = conn.cursor()
-        c.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        db_tables[db] = [t[0] for t in c.fetchall()]
-        conn.close()
-    except:
-        db_tables[db] = []
+        admin_engine = get_postgres_admin_engine()
+        with admin_engine.connect() as conn:
+            db_rows = conn.execute(text("SELECT datname FROM pg_database WHERE datistemplate = false"))
+            db_names = [row[0] for row in db_rows.fetchall() if row[0] != 'postgres']
+
+        for db in db_names:
+            try:
+                engine = create_company_engine(db)
+                inspector = inspect(engine)
+                result[db] = inspector.get_table_names()
+            except Exception as e:
+                print(f"❌ Error reading tables in {db}: {e}")
+                result[db] = []
+
+        return db_names, result
+    except Exception as e:
+        print("❌ Failed to load PostgreSQL databases:", e)
+        return [], {}
+
 
 
 @edit_page_bp.route('/get_table_columns')
 def get_table_columns():
-    db_name = request.args.get('db')
+    db_name = request.args.get('db')  # no .db anymore
     table_name = request.args.get('table')
 
     if not db_name or not table_name:
         return jsonify({'error': 'Missing parameters'}), 400
 
-    db_path = os.path.join(os.getcwd(), 'data', db_name)
-    if not os.path.isfile(db_path):
-        return jsonify({'error': 'Database not found'}), 404
-
     try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute(f"PRAGMA table_info({table_name})")
-        columns_info = cursor.fetchall()
-        conn.close()
-
-        columns = [col[1] for col in columns_info]  # 2nd item is column name
+        engine = create_company_engine(db_name)
+        inspector = inspect(engine)
+        columns_info = inspector.get_columns(table_name)
+        columns = [col['name'] for col in columns_info]
         return jsonify({'columns': columns})
 
     except Exception as e:

@@ -1,0 +1,116 @@
+{
+  "layout": [
+    {
+      "type": "smart_table",
+      "label": "Summary Table 1",
+      "version": 1,
+      "top": 0,
+      "left": 0,
+      "config": {
+        "rows": 3,
+        "columns": 8,
+        "database": "Supreme.db",
+        "table": "bank_cash",
+        "selected_cell": "R13C2",
+        "cell_code": {
+          "R1C1": "print('Total Premium Value (Refunds deducted)')",
+          "R1C2": "import sqlite3, pandas as pd\ndb = sqlite3.connect(\"data/Supreme.db\")\ncash = pd.read_sql(\"SELECT * FROM bank_cash\", db)\nnupay = pd.read_sql(\"SELECT * FROM bank_nupay\", db)\ngrin = pd.read_sql(\"SELECT * FROM bank_grinrod\", db)\nrefund = pd.read_sql(\"SELECT * FROM bank_refund\", db)\ndb.close()\nprint(round(cash[\"amount\"].sum() + nupay[\"amount\"].sum() + grin[\"amount\"].sum() + refund[\"amount\"].sum(), 2))\n\n",
+          "R1C3": "print('NuPay')",
+          "R1C4": "print('Grinrod')\n",
+          "R1C5": "print('Refunds\tFees')\n",
+          "R1C6": "print('Fees')",
+          "R1C7": "print('Loan Income')",
+          "R2C1": "print('Commission (50 %)')",
+          "R2C2": "print(round(R1C2 * 0.5, 2))",
+          "R2C3": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_nupay\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))",
+          "R2C4": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_grinrod_master\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))\n",
+          "R2C5": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_refund\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))\n",
+          "R3C1": "",
+          "R3C3": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_nupay_master\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))",
+          "R3C4": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_grinrod\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))\n",
+          "R3C5": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_refund_master\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))\n",
+          "R1C8": "print('Loan Refund')",
+          "R4C1": "print('Sanlam Premium Value')",
+          "R6C1": "print('Comm 50 %')",
+          "R7C1": "print('Claims')",
+          "R8C1": "print('Underwriting')",
+          "R9C1": "print('Transaction Fees')",
+          "R10C1": "print('Gross')",
+          "R12C1": "print('Pembazone Comm')",
+          "R13C1": "print('Gross')",
+          "R4C2": "import sqlite3, pandas as pd\nconn = sqlite3.connect(\"data/Supreme.db\")\ntables = [\"bank_cash\", \"bank_nupay\", \"bank_grinrod\", \"bank_refund\"]\nsum_prem = 0\nfor t in tables:\n    df = pd.read_sql(f\"SELECT * FROM {t}\", conn)\n    if \"underwriters_premium\" in df.columns:\n        sum_prem += df[\"underwriters_premium\"].astype(float).sum()\nconn.close()\nprint(round(sum_prem, 2))\n",
+          "R6C2": "print(round(R1C2 * 0.5, 2))",
+          "R7C2": "import sqlite3, pandas as pd\nconn = sqlite3.connect(\"data/Supreme.db\")\ntables = pd.read_sql(\"SELECT name FROM sqlite_master WHERE type='table'\", conn)[\"name\"].values\nif \"claims\" in tables:\n    df = pd.read_sql(\"SELECT * FROM claims\", conn)\n    val = round(df[\"amount_paid\"].astype(float).sum(), 2)\nelse:\n    val = 0\nconn.close()\nprint(val)\n",
+          "R8C2": "print(round(R4C2 * 0.08, 2))",
+          "R9C2": "import sqlite3, pandas as pd\nconn = sqlite3.connect(\"data/Supreme.db\")\ndf = pd.read_sql(\"SELECT * FROM bank_fee\", conn)\nconn.close()\nprint(round(df[\"amount\"].astype(float).sum(), 2))\n",
+          "R10C2": "print(round(R6C2 - R7C2 - R8C2 + R9C2, 2))",
+          "R12C2": "print(round(R1C2 * 0.3 - R7C2, 2))",
+          "R13C2": "print(round(R10C2 - R12C2, 2))"
+        },
+        "background": true,
+        "compare_rules": [
+          [
+            "R2C3",
+            "R3C3"
+          ],
+          [
+            "R2C4",
+            "R3C4"
+          ]
+        ]
+      }
+    },
+    {
+      "type": "smart_table",
+      "label": "Summary Table 2",
+      "version": 1,
+      "top": 0,
+      "left": 740,
+      "config": {
+        "rows": 13,
+        "columns": 2,
+        "database": "Supreme.db",
+        "table": "sqlite_sequence",
+        "selected_cell": "R13C2",
+        "cell_code": {
+          "R1C1": "print('Total Premium Value (Refunds deducted)')",
+          "R1C2": "import sqlite3, pandas as pd\ndb = sqlite3.connect(\"data/Supreme.db\")\ncash = pd.read_sql(\"SELECT * FROM bank_cash\", db)\nnupay = pd.read_sql(\"SELECT * FROM bank_nupay\", db)\ngrin = pd.read_sql(\"SELECT * FROM bank_grinrod\", db)\nrefund = pd.read_sql(\"SELECT * FROM bank_refund\", db)\ndb.close()\nprint(round(cash[\"amount\"].sum() + nupay[\"amount\"].sum() + grin[\"amount\"].sum() + refund[\"amount\"].sum(), 2))\n\n",
+          "R1C3": "print('NuPay')",
+          "R1C4": "print('Grinrod')\n",
+          "R1C5": "print('Refunds\tFees')\n",
+          "R1C6": "print('Fees')",
+          "R1C7": "print('Loan Income')",
+          "R2C1": "print('Commission (50 %)')",
+          "R2C2": "print(round(R1C2 * 0.5, 2))",
+          "R2C3": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_nupay\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))",
+          "R2C4": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_grinrod_master\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))\n",
+          "R2C5": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_refund\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))\n",
+          "R3C1": "",
+          "R3C3": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_nupay_master\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))",
+          "R3C4": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_grinrod\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))\n",
+          "R3C5": "import sqlite3, pandas as pd\ndf = pd.read_sql(\"SELECT * FROM bank_refund_master\", sqlite3.connect(\"data/Supreme.db\"))\nprint(round(df[\"amount\"].astype(float).sum(), 2))\n",
+          "R1C8": "print('Loan Refund')",
+          "R4C1": "print('Sanlam Premium Value')",
+          "R6C1": "print('Comm 50 %')",
+          "R7C1": "print('Claims')",
+          "R8C1": "print('Underwriting')",
+          "R9C1": "print('Transaction Fees')",
+          "R10C1": "print('Gross')",
+          "R12C1": "print('Pembazone Comm')",
+          "R13C1": "print('Gross')",
+          "R4C2": "import sqlite3, pandas as pd\nconn = sqlite3.connect(\"data/Supreme.db\")\ntables = [\"bank_cash\", \"bank_nupay\", \"bank_grinrod\", \"bank_refund\"]\nsum_prem = 0\nfor t in tables:\n    df = pd.read_sql(f\"SELECT * FROM {t}\", conn)\n    if \"underwriters_premium\" in df.columns:\n        sum_prem += df[\"underwriters_premium\"].astype(float).sum()\nconn.close()\nprint(round(sum_prem, 2))\n",
+          "R6C2": "print(round(R1C2 * 0.5, 2))",
+          "R7C2": "import sqlite3, pandas as pd\nconn = sqlite3.connect(\"data/Supreme.db\")\ntables = pd.read_sql(\"SELECT name FROM sqlite_master WHERE type='table'\", conn)[\"name\"].values\nif \"claims\" in tables:\n    df = pd.read_sql(\"SELECT * FROM claims\", conn)\n    val = round(df[\"amount_paid\"].astype(float).sum(), 2)\nelse:\n    val = 0\nconn.close()\nprint(val)\n",
+          "R8C2": "print(round(R4C2 * 0.08, 2))",
+          "R9C2": "import sqlite3, pandas as pd\nconn = sqlite3.connect(\"data/Supreme.db\")\ndf = pd.read_sql(\"SELECT * FROM bank_fee\", conn)\nconn.close()\nprint(round(df[\"amount\"].astype(float).sum(), 2))\n",
+          "R10C2": "print(round(R6C2 - R7C2 - R8C2 + R9C2, 2))",
+          "R12C2": "print(round(R1C2 * 0.3 - R7C2, 2))",
+          "R13C2": "print(round(R10C2 - R12C2, 2))"
+        },
+        "background": true,
+        "compare_rules": []
+      }
+    }
+  ],
+  "workspace_height": 2863
+}

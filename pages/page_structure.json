@@ -17,6 +17,18 @@
       {
         "name": "Calculate_Bank_NuPay",
         "order": 4
+      },
+      {
+        "name": "Go_to_Bank_Refunds",
+        "order": 5
+      },
+      {
+        "name": "Go_to_bank_Cash",
+        "order": 6
+      },
+      {
+        "name": "Summary_Page",
+        "order": 7
       }
     ]
   },
@@ -29,7 +41,7 @@
     "pages": [
       {
         "name": "Home",
-        "order": 1
+        "order": 9999
       }
     ]
   }

@@ -14,7 +14,22 @@
         {% for item in layout_items %}
             {% set config = item.config or {} %}
             <div class="button-box"
-                style="top: {{ item.top }}px; left: {{ item.left }}px; width: {{ item.width | default(220) }}px;"
+
+            style="
+    {% if config.layout_mode == 'absolute' %}
+        position: absolute;
+        top: {{ item.top }}px;
+        left: {{ item.left }}px;
+    {% else %}
+        position: relative;
+        margin: 10px;
+    {% endif %}
+    width: {{ item.width | default(220) }}px;
+    {{ 'display: none;' if config.group_id }}
+"
+
+        
+        
                 data-type="{{ item.type }}"
                 data-version="{{ item.version }}"
                 data-config='{{ config | tojson }}'
@@ -27,6 +42,15 @@
                 data-file-format="{{ config.file_format | default('csv') }}"
                 data-ai-question="{{ config.prompt | default('') }}"
                 data-show-chart="{{ config.show_chart | default(false) | lower }}"
+                data-group="{{ config.group_id or item.label }}"
+                {% if item.type == 'box_trigger' %}
+                    data-box-id="{{ config.group_id or item.label }}"
+                    data-behavior="{{ config.behavior }}"
+                    data-alignment="{{ config.alignment }}"
+                {% endif %}
+
+
+
             >
                 <div><strong>{{ item.label }}</strong></div>
     
@@ -87,6 +111,11 @@
                 {% elif item.type == 'code' %}
                     <button onclick="handleButton(`{{ config.code | e }}`, {{ item.background | default(false) | lower }}, this)">
                         ▶️ Run
+                    </button>
+                
+                {% elif item.type == 'box_trigger' %}
+                    <button onclick="triggerBoxClicked(this.parentElement)">
+                        {{ item.label }}
                     </button>
 
                 {% elif item.type == 'smart_table' %}
@@ -668,6 +697,95 @@
     preview.innerHTML = html;
     buttonElement.textContent = "✅ Done!";
 }
+
+        console.log("✅ triggerBoxClicked loaded");
+
+
+        function triggerBoxClicked(box) {
+    console.log("📦 Trigger clicked", box);
+
+    const boxId = box.getAttribute('data-box-id');
+    const behavior = box.getAttribute('data-behavior');
+    const alignment = box.getAttribute('data-alignment');
+    const wrapperClass = 'trigger-button-container';
+    const workspace = document.querySelector('.workspace');
+
+    // Case 1: Auto run
+    if (behavior === 'auto_run') {
+        const linkedButtons = document.querySelectorAll(`.button-box[data-group="${boxId}"]`);
+        linkedButtons.forEach(btn => {
+            const type = btn.getAttribute('data-type') || 'code';
+            const config = JSON.parse(btn.getAttribute('data-config') || '{}');
+            const background = btn.getAttribute('data-background') === 'true';
+            const runBtn = btn.querySelector('button');
+
+            if (type === 'link') {
+                const target = config.target;
+                if (target) window.location.href = `/page/${target}`;
+            } else if (runBtn) {
+                const code = btn.getAttribute('data-code') || config.code;
+                handleButton(code, background, runBtn);
+            }
+        });
+        return;
+    }
+
+    // Check if wrapper already exists
+    let existingWrapper = document.querySelector(`.trigger-button-container[data-group="${boxId}"]`);
+    if (existingWrapper) {
+        const isHidden = existingWrapper.style.display === 'none';
+        existingWrapper.style.display = isHidden ? 'flex' : 'none';
+        return;
+    }
+
+    // Create wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = `${wrapperClass} ${alignment}`;
+    wrapper.dataset.group = boxId;
+    wrapper.style.display = 'flex';
+    wrapper.style.position = 'absolute';
+    wrapper.style.zIndex = '10';
+
+    // Get trigger box position (relative to workspace)
+    const offsetTop = box.offsetTop;
+    const offsetLeft = box.offsetLeft;
+
+    const margin = 20; // matches CSS .button-box margin
+
+    if (alignment === 'right') {
+        wrapper.style.top = `${offsetTop - margin}px`;
+        wrapper.style.left = `${offsetLeft + box.offsetWidth + 12}px`;
+        wrapper.style.flexDirection = 'row';
+        wrapper.style.flexWrap = 'wrap';
+        wrapper.classList.add('right');
+    } else {
+        wrapper.style.top = `${offsetTop + box.offsetHeight + 12 - margin}px`;
+        wrapper.style.left = `${offsetLeft}px`;
+        wrapper.style.flexDirection = 'column';
+        wrapper.classList.add('below');
+    }
+
+    // Move linked buttons into wrapper
+    const linkedButtons = Array.from(document.querySelectorAll(`.button-box[data-group="${boxId}"]`))
+    .filter(btn => btn !== box); // prevent moving the trigger box itself
+
+    linkedButtons.forEach(btn => {
+        btn.style.position = 'relative';
+        btn.style.top = 'unset';
+        btn.style.left = 'unset';
+        btn.style.display = 'block';
+
+        if (btn.parentElement) {
+            btn.parentElement.removeChild(btn);
+        }
+
+        wrapper.appendChild(btn);
+    });
+
+    workspace.appendChild(wrapper);
+}
+
+
 
     </script>
 </body>

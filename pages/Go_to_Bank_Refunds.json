@@ -1,0 +1,31 @@
+{
+  "layout": [
+    {
+      "type": "code",
+      "label": "Calculate Bank Refunds",
+      "version": 1,
+      "top": 0,
+      "left": 0,
+      "config": {
+        "code": "from uploaded_code.supreme_h import calculate_bank_refund\nprint('Start Function')\ncalculate_bank_refund()",
+        "background": true,
+        "group_id": "",
+        "layout_mode": ""
+      }
+    },
+    {
+      "type": "link",
+      "label": "Go to Bank Cash",
+      "version": 1,
+      "top": 0,
+      "left": 1260,
+      "config": {
+        "target": "Go_to_bank_Cash",
+        "background": false,
+        "group_id": "",
+        "layout_mode": ""
+      }
+    }
+  ],
+  "workspace_height": 808
+}

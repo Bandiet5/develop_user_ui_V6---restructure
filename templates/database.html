@@ -49,7 +49,7 @@
             <label><strong>Choose Database:</strong></label>
             <select name="database">
                 {% for db in databases %}
-                    <option value="{{ db }}">{{ db }}</option>
+                    <option value="{{ db }}" {% if db == selected_db %}selected{% endif %}>{{ db }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -83,8 +83,8 @@
                 </form>
             </h4>
 
-            {% if tables is mapping and tables.error %}
-                <p style="color: red;">Error: {{ tables.error }}</p>
+            {% if tables is string and 'error' in tables %}
+                <p style="color: red;">Error: {{ tables }}</p>
             {% else %}
                 <ul>
                     {% for table in tables %}
@@ -114,10 +114,15 @@
             row.className = 'column-row';
             row.innerHTML = `
                 <input type="text" name="column_names[]" placeholder="Column Name" value="${name}" required>
-                <select name="column_types[]">
-                    <option value="TEXT" ${type === 'TEXT' ? 'selected' : ''}>TEXT</option>
-                    <option value="INTEGER" ${type === 'INTEGER' ? 'selected' : ''}>INTEGER</option>
-                    <option value="REAL" ${type === 'REAL' ? 'selected' : ''}>REAL</option>
+                <select name="column_types[]" required>
+                    <option value="TEXT">TEXT</option>
+                    <option value="INTEGER">INTEGER</option>
+                    <option value="REAL">REAL</option>
+                    <option value="BOOLEAN">BOOLEAN</option>
+                    <option value="DATE">DATE</option>
+                    <option value="TIMESTAMP">TIMESTAMP</option>
+                    <option value="NUMERIC">NUMERIC</option>
+
                 </select>
                 <button type="button" onclick="this.parentElement.remove()">❌</button>
             `;

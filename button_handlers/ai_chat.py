@@ -1,8 +1,7 @@
-# button_handlers/ai_chat.py
-
 import os
-import sqlite3
 import pandas as pd
+from sqlalchemy import text
+from db_config import create_company_engine
 from button_handlers.base import BaseButtonHandler
 from blueprints.ai_tools import read_excel_files, summarize_data, run_generated_code
 
@@ -27,22 +26,23 @@ class AiChatHandler(BaseButtonHandler):
         file2 = files.get("file2")
 
         try:
-            # Load data
+            # 📂 Load uploaded files
             if file1 or file2:
                 dfs = read_excel_files(file1, file2)
-            elif database and tables:
-                db_path = os.path.join("data", database)
-                if not os.path.isfile(db_path):
-                    return {"status": "error", "message": f"Database '{database}' not found."}
 
-                conn = sqlite3.connect(db_path)
-                for table in tables[:2]:
-                    try:
-                        df = pd.read_sql(f"SELECT * FROM {table} LIMIT 500", conn)
-                        dfs.append(df)
-                    except Exception as table_err:
-                        print(f"[TABLE LOAD ERROR] {table}: {table_err}")
-                conn.close()
+            # 🗃️ Load from database tables
+            elif database and tables:
+                db_name = database.replace('.db', '')
+                engine = create_company_engine(db_name)
+
+                with engine.connect() as conn:
+                    for table in tables[:2]:  # Only first 2 tables
+                        try:
+                            df = pd.read_sql_query(text(f'SELECT * FROM "{table}" LIMIT 500'), conn)
+                            dfs.append(df)
+                        except Exception as table_err:
+                            print(f"[TABLE LOAD ERROR] {table}: {table_err}")
+
             else:
                 return {
                     "status": "error",
@@ -74,3 +74,4 @@ class AiChatHandler(BaseButtonHandler):
         except Exception as e:
             print("[AI CHAT ERROR]", str(e))
             return {"status": "error", "message": str(e)}
+

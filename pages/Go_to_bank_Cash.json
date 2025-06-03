@@ -1,0 +1,44 @@
+{
+  "layout": [
+    {
+      "type": "code",
+      "label": "Calculate bank Cash",
+      "version": 1,
+      "top": 0,
+      "left": 0,
+      "config": {
+        "code": "from uploaded_code.supreme_h import calculate_bank_cash\nprint('Start Function')\ncalculate_bank_cash()",
+        "group_id": "",
+        "layout_mode": "auto",
+        "background": true
+      }
+    },
+    {
+      "type": "link",
+      "label": "Go to Summary Page",
+      "version": 1,
+      "top": 0,
+      "left": 1200,
+      "config": {
+        "target": "Summary_Page",
+        "group_id": "",
+        "layout_mode": "auto",
+        "background": false
+      }
+    },
+    {
+      "type": "code",
+      "label": "Finalize Bank Cash",
+      "version": 1,
+      "top": 0,
+      "left": 340,
+      "config": {
+        "code": "from uploaded_code.supreme_h import finalize_bank_cash\nprint('Start Function')\nfinalize_bank_cash()",
+        "group_id": "",
+        "layout_mode": "auto",
+        "background": true
+      }
+    }
+  ],
+  "workspace_height": 812
+}

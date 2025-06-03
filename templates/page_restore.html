@@ -27,7 +27,7 @@
     // Optionally auto-load the first version *only if it makes sense*
     if (versions.length > 0) {
         versionSelect.selectedIndex = 0;
-        loadButtons(); // You can remove this if you want to wait until user selects
+        //loadButtons(); // You can remove this if you want to wait until user selects
     }
 }
 
@@ -63,8 +63,8 @@
     <form method="POST" action="/restore_version">
         <label>Page:
             <input list="page-options" id="page-name" name="page_name"
-                oninput="autoFill(this); loadVersions()"
-                onchange="loadVersions()" required>
+                oninput="autoFill(this); loadVersions()" required>
+
 
             <datalist id="page-options">
                 {% for page in pages %}

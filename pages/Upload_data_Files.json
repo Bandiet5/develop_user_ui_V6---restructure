@@ -5,9 +5,11 @@
       "label": "Home",
       "version": 1,
       "top": 0,
-      "left": 1360,
+      "left": 2200,
       "config": {
         "target": "Home",
+        "group_id": "Go to Pages",
+        "layout_mode": "auto",
         "background": false
       }
     },
@@ -15,10 +17,25 @@
       "type": "link",
       "label": "Back to Supreme Main Page",
       "version": 1,
-      "top": 180,
-      "left": 1360,
+      "top": 680,
+      "left": 2200,
       "config": {
         "target": "Supreme",
+        "group_id": "Go to Pages",
+        "layout_mode": "auto",
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Calculate Supreme Resaults",
+      "version": 1,
+      "top": 340,
+      "left": 2200,
+      "config": {
+        "target": "Calculate_Supreme_Heinrich",
+        "group_id": "Go to Pages",
+        "layout_mode": "auto",
         "background": false
       }
     },
@@ -26,13 +43,15 @@
       "type": "multi_upload",
       "label": "Upload Bank Master Files",
       "version": 2,
-      "top": 0,
+      "top": 420,
       "left": 0,
       "config": {
-        "database": "Supreme.db",
-        "table": "bank_master_upload",
+        "database": "Supreme",
+        "table": "bank_master",
         "code": "",
         "upload_mode": "replace",
+        "group_id": "Upload files",
+        "layout_mode": "auto",
         "background": true
       }
     },
@@ -40,13 +59,15 @@
       "type": "upload",
       "label": "Upload Bordereaux Raport",
       "version": 1,
-      "top": 0,
+      "top": 420,
       "left": 300,
       "config": {
         "code": "",
-        "database": "Supreme.db",
-        "table": "bordereaux_upload",
+        "database": "Supreme",
+        "table": "",
         "upload_mode": "replace",
+        "group_id": "Upload files",
+        "layout_mode": "auto",
         "background": true
       }
     },
@@ -54,13 +75,15 @@
       "type": "upload",
       "label": "Upload Grinrod",
       "version": 1,
-      "top": 0,
-      "left": 600,
+      "top": 960,
+      "left": 300,
       "config": {
         "code": "",
-        "database": "Supreme.db",
-        "table": "grinrod_upload",
+        "database": "Supreme",
+        "table": "",
         "upload_mode": "replace",
+        "group_id": "Upload files",
+        "layout_mode": "auto",
         "background": true
       }
     },
@@ -68,13 +91,15 @@
       "type": "upload",
       "label": "Upload Nupay",
       "version": 1,
-      "top": 380,
+      "top": 1060,
       "left": 0,
       "config": {
         "code": "from uploaded_code.id_clean import pad_to_13_digits\ndf['debtor_id'] = df['debtor_id'].apply(pad_to_13_digits)\n",
-        "database": "Supreme.db",
-        "table": "nupay_upload",
+        "database": "Supreme",
+        "table": "",
         "upload_mode": "replace",
+        "group_id": "Upload files",
+        "layout_mode": "auto",
         "background": true
       }
     },
@@ -82,13 +107,15 @@
       "type": "upload",
       "label": "Upload Refunds",
       "version": 1,
-      "top": 380,
-      "left": 300,
+      "top": 420,
+      "left": 600,
       "config": {
         "code": "",
-        "database": "Supreme.db",
-        "table": "refunds_upload",
+        "database": "Supreme",
+        "table": "",
         "upload_mode": "replace",
+        "group_id": "Upload files",
+        "layout_mode": "auto",
         "background": true
       }
     },
@@ -96,41 +123,110 @@
       "type": "upload",
       "label": "Upload Claims",
       "version": 1,
-      "top": 380,
-      "left": 600,
+      "top": 1480,
+      "left": 300,
       "config": {
         "code": "",
-        "database": "Supreme.db",
-        "table": "claims_upload",
+        "database": "Supreme",
+        "table": "",
         "upload_mode": "replace",
+        "group_id": "Upload files",
+        "layout_mode": "auto",
         "background": true
-      }
-    },
-    {
-      "type": "link",
-      "label": "Calculate Supreme Resaults",
-      "version": 1,
-      "top": 0,
-      "left": 1000,
-      "config": {
-        "target": "Calculate_Supreme_Heinrich",
-        "background": false
       }
     },
     {
       "type": "multi_upload",
       "label": "Multi Upload Nupay Old",
       "version": 2,
-      "top": 780,
+      "top": 1640,
       "left": 0,
       "config": {
-        "database": "Supreme.db",
-        "table": "nupay_database",
+        "database": "Supreme",
+        "table": "",
         "code": "from uploaded_code.id_clean import pad_to_13_digits\ndf['debtor_id'] = df['debtor_id'].apply(pad_to_13_digits)\n\ndf = df.rename(columns={'user_reference': 'policy_number'})",
         "upload_mode": "append",
+        "group_id": "Upload files",
+        "layout_mode": "auto",
         "background": true
+      }
+    },
+    {
+      "type": "box_trigger",
+      "label": "Upload files",
+      "version": 1,
+      "top": 0,
+      "left": 0,
+      "config": {
+        "behavior": "show_buttons",
+        "alignment": "below",
+        "group_id": "",
+        "layout_mode": "absolute",
+        "background": false
+      }
+    },
+    {
+      "type": "box_trigger",
+      "label": "Go to Pages",
+      "version": 1,
+      "top": 0,
+      "left": 600,
+      "config": {
+        "behavior": "show_buttons",
+        "alignment": "below",
+        "group_id": "",
+        "layout_mode": "absolute",
+        "background": false
+      }
+    },
+    {
+      "type": "box_trigger",
+      "label": "Results",
+      "version": 1,
+      "top": 0,
+      "left": 300,
+      "config": {
+        "behavior": "show_buttons",
+        "alignment": "below",
+        "group_id": "",
+        "layout_mode": "absolute",
+        "background": false
+      }
+    },
+    {
+      "type": "mini_analytics",
+      "label": "Length data Bank Master",
+      "version": 2,
+      "top": 420,
+      "left": 980,
+      "config": {
+        "database": "Supreme",
+        "table": "bank_master",
+        "code": "Length_data= len(df)\n\nresult = f\"Length data: {Length_data}\"\n",
+        "refresh_interval": 300,
+        "show_chart": false,
+        "group_id": "Results",
+        "layout_mode": "auto",
+        "background": false
+      }
+    },
+    {
+      "type": "mini_analytics",
+      "label": "Length data Bank Master",
+      "version": 2,
+      "top": 420,
+      "left": 1280,
+      "config": {
+        "database": "Supreme",
+        "table": "bank_master",
+        "code": "Length_data= len(df)\n\nresult = f\"Length data: {Length_data}\"\n",
+        "refresh_interval": 300,
+        "show_chart": false,
+        "group_id": "Results",
+        "layout_mode": "auto",
+        "background": false
       }
     }
   ],
-  "workspace_height": 1972
+  "workspace_height": 3026
 }

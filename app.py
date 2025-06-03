@@ -1,16 +1,21 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+import importlib.util
+import getpass
 import os
 import json
-import sqlite3
 from multiprocessing import Process
 import time
-from flask import request, jsonify
-import time
 import pandas as pd
+
 from blueprints.users import init_users_table
 from button_handlers.ai_chat import AiChatHandler  # 👈 Top of your app.py
 from button_registry import get_handler  # 👈 ensure this is imported
 from button_handlers.multi_upload import MultiUploadHandler
+from sqlalchemy import text
+from db_config import get_app_engine
+from db_config import create_company_engine
+from sqlalchemy import inspect
+
 
 # Blueprints 
 from button_handlers.form import form_bp
@@ -23,6 +28,9 @@ from blueprints.ai_tools import read_excel_files, summarize_data
 from blueprints.user_page import user_page_bp
 from blueprints.page_restore import page_restore_bp
 from blueprints.manage_functions import manage_functions_bp
+from blueprints.users import init_users_table, ensure_app_database_exists
+from blueprints.edit_page import init_page_data_db
+from blueprints.scheduler import scheduler  # This will trigger cleanup + start the scheduler
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -39,6 +47,9 @@ app.register_blueprint(page_restore_bp)
 app.register_blueprint(manage_functions_bp)
 
 DB_PATH = os.path.join(os.getcwd(), 'data', 'app_data.db') 
+
+
+app_engine = get_app_engine()
 
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/login', methods=['GET', 'POST'])
@@ -57,13 +68,13 @@ def login():
             print("[LOGIN] Logged in as hardcoded developer")
             return redirect(url_for('developer.developer_dashboard'))
 
-        # Database user login
+        # PostgreSQL DB user login
         try:
-            conn = sqlite3.connect(DB_PATH)
-            c = conn.cursor()
-            c.execute("SELECT role FROM users WHERE username=? AND password=?", (username, password))
-            result = c.fetchone()
-            conn.close()
+            with app_engine.connect() as conn:
+                result = conn.execute(
+                    text("SELECT role FROM users WHERE username = :u AND password = :p"),
+                    {'u': username, 'p': password}
+                ).fetchone()
         except Exception as e:
             print("[ERROR] DB login check failed:", e)
             return render_template('login.html', error="Server error")
@@ -73,8 +84,6 @@ def login():
             session['username'] = username
             session['role'] = role
             print(f"[LOGIN] DB user '{username}' logged in with role: {role}")
-            print(f"[DEBUG] Session after login: {dict(session)}")
-            # ✅ Redirect to user-facing page view route
             return redirect(url_for('user_page', page_name='Home'))
 
         print("[LOGIN] Invalid credentials for user:", username)
@@ -89,6 +98,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+
 @app.route('/page/<page_name>')
 def user_page(page_name):
     print(f"[ROUTE] user_page: {page_name}")
@@ -98,6 +108,7 @@ def user_page(page_name):
         print("[BLOCKED] No session found. Redirecting to login.")
         return redirect(url_for('login'))
 
+    # 📄 Load layout JSON from disk
     filepath = os.path.join('pages', f'{page_name}.json')
     if os.path.exists(filepath):
         with open(filepath, 'r') as f:
@@ -107,35 +118,65 @@ def user_page(page_name):
         layout = []
         print(f"[PAGE] File not found: {filepath}")
 
-    # 🧠 Load databases and their tables
+    # 🧠 Load all PostgreSQL databases and their tables
     db_tables = {}
     db_dir = "data"
     try:
         for file in os.listdir(db_dir):
             if file.endswith(".db"):
-                db_path = os.path.join(db_dir, file)
-                import sqlite3
-                conn = sqlite3.connect(db_path)
-                cursor = conn.cursor()
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-                tables = [row[0] for row in cursor.fetchall()]
-                db_tables[file] = tables
-                conn.close()
+                db_name = file.replace(".db", "")
+                try:
+                    engine = create_company_engine(db_name)
+                    inspector = inspect(engine)
+                    tables = inspector.get_table_names()
+                    db_tables[file] = tables
+                except Exception as db_err:
+                    db_tables[file] = [f"❌ Error: {db_err}"]
         print("[DB TABLES] Loaded database tables:", db_tables)
     except Exception as e:
         print("[ERROR] Failed loading database tables:", str(e))
 
-    # 🛠 Pass db_tables into template
+    # 🎯 Pass everything to the template
     return render_template('user_page.html', layout=layout, page_name=page_name, db_tables=db_tables)
 
-# ✅ Top-level function for background-safe multiprocessing
-def run_task(code):
-    print("[TASK] Running:", code)
 
-    import importlib.util
-    import os
-    from contextlib import redirect_stdout
+# ✅ Top-level function for background-safe multiprocessing
+
+def import_used_modules(code_string):
+    context = {}
+    code_dir = os.path.join(os.getcwd(), "uploaded_code")
+
+    if not os.path.exists(code_dir):
+        return context
+
+    for fname in os.listdir(code_dir):
+        if not fname.endswith(".py"):
+            continue
+
+        mod_name = fname[:-3]
+        if f"import {mod_name}" in code_string or f"from uploaded_code.{mod_name}" in code_string:
+            fpath = os.path.join(code_dir, fname)
+            try:
+                spec = importlib.util.spec_from_file_location(mod_name, fpath)
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                context[mod_name] = mod
+                print(f"[IMPORT] Loaded module: {mod_name}")
+            except Exception as e:
+                print(f"[IMPORT ERROR] Could not load {fname}: {e}")
+
+    return context
+
+
+
+def run_task(code):
+    print("[TASK] Running:\n", code)
+    from sqlalchemy import create_engine, text
     from io import StringIO
+    from contextlib import redirect_stdout
+    import traceback
+    import os
+    import importlib.util
 
     def import_uploaded_modules():
         context = {}
@@ -158,26 +199,36 @@ def run_task(code):
                     print(f"[IMPORT ERROR] Could not load {fname}: {e}")
         return context
 
-    # ✅ Safe base imports available to the user's code
+    # ✅ Safe base imports
     safe_imports = """
-import sqlite3
+from sqlalchemy import create_engine, text
 import pandas as pd
 import os
 import getpass
 """
 
     final_code = safe_imports + "\n" + code
+    context = import_uploaded_modules()
+
+    # Add safe SQLAlchemy functions manually
+    context['create_engine'] = create_engine
+    context['text'] = text
+
+    f = StringIO()
 
     try:
-        context = import_uploaded_modules()
-        f = StringIO()
-        with redirect_stdout(f):  # Capture output for logging
+        with redirect_stdout(f):
             exec(final_code, context, context)
-        output = f.getvalue().strip()
-        print("[TASK OUTPUT]", output or "✅ Done.")
     except Exception as e:
-        print("[TASK ERROR]", e)
+        output = f.getvalue()
+        print("[TASK OUTPUT BEFORE ERROR]")
+        print(output.strip())
+        print("[TASK ERROR]")
+        traceback.print_exc()
+        return
 
+    output = f.getvalue().strip()
+    print("[TASK OUTPUT]", output or "✅ Done.")
 
 
 @app.route('/run_action', methods=['POST'])
@@ -251,14 +302,18 @@ def ai_chat():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+
 @app.before_request
 def debug_session():
     print(f"[SESSION DEBUG] Path: {request.path} | Session: {dict(session)}")
 
 
-# Updated for GitHub test - 2025-05-05
-# another test update
 if __name__ == '__main__':
-    init_users_table()
+    ensure_app_database_exists()       # ✅ Create DB if missing
+    init_users_table()                 # ✅ Create users table
+    init_page_data_db()                # ✅ Create page tables
+    from blueprints.scheduler import scheduler
     app.run(debug=True)
+
+
 

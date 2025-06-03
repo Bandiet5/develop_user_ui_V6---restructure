@@ -1,40 +1,52 @@
-# blueprints/users.py
-
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-import sqlite3
-import os
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
+from db_config import get_app_engine, get_postgres_admin_engine
 
 users_bp = Blueprint('users', __name__)
-DB_PATH = os.path.join(os.getcwd(), 'data', 'app_data.db')
 
-# Ensure the users table exists
+def ensure_app_database_exists():
+    try:
+        engine = get_app_engine()
+        with engine.connect():
+            print("[INIT] app_data DB exists.")
+    except OperationalError:
+        print("[INIT] app_data DB not found. Creating it...")
+        admin_engine = get_postgres_admin_engine()
+        with admin_engine.connect() as conn:
+            conn.execution_options(isolation_level="AUTOCOMMIT").execute(
+                text('CREATE DATABASE app_data')
+            )
+        print("[INIT] app_data DB created.")
+
+# ✅ Ensure the users table exists
 def init_users_table():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    ensure_app_database_exists()
+    engine = get_app_engine()
+    with engine.connect() as conn:
+        conn.execute(text('''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL
+            )
+        '''))
+        conn.commit()
 
-# View all users
+# ✅ View all users
 @users_bp.route('/users')
 def manage_users():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('SELECT id, username, role FROM users')
-    users = c.fetchall()
-    conn.close()
+    engine = get_app_engine()  # now initialized safely
+    with engine.connect() as conn:
+        result = conn.execute(text('SELECT id, username, role FROM users'))
+        users = result.fetchall()
     return render_template('user_list.html', users=users)
 
-# Create a new user
+# ✅ Create a new user
 @users_bp.route('/create_user', methods=['GET', 'POST'])
 def create_user():
+    engine = get_app_engine()
     if request.method == 'POST':
         username = request.form.get('username').strip()
         password = request.form.get('password').strip()
@@ -45,26 +57,33 @@ def create_user():
             return redirect(url_for('users.create_user'))
 
         try:
-            conn = sqlite3.connect(DB_PATH)
-            c = conn.cursor()
-            c.execute('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', (username, password, role))
-            conn.commit()
-            conn.close()
+            with engine.connect() as conn:
+                conn.execute(text('''
+                    INSERT INTO users (username, password, role)
+                    VALUES (:username, :password, :role)
+                '''), {
+                    'username': username,
+                    'password': password,
+                    'role': role
+                })
+                conn.commit()
             flash("User created successfully.")
             return redirect(url_for('users.manage_users'))
-        except sqlite3.IntegrityError:
-            flash("Username already exists.")
+        except Exception as e:
+            if 'duplicate key' in str(e).lower():
+                flash("Username already exists.")
+            else:
+                flash(f"Error: {e}")
             return redirect(url_for('users.create_user'))
 
     return render_template('create_user.html')
 
-# Delete a user
+# ✅ Delete a user
 @users_bp.route('/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('DELETE FROM users WHERE id = ?', (user_id,))
-    conn.commit()
-    conn.close()
+    engine = get_app_engine()
+    with engine.connect() as conn:
+        conn.execute(text('DELETE FROM users WHERE id = :id'), {'id': user_id})
+        conn.commit()
     flash("User deleted.")
     return redirect(url_for('users.manage_users'))

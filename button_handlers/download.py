@@ -1,6 +1,7 @@
 import os
-import sqlite3
 import pandas as pd
+from sqlalchemy import text
+from db_config import create_company_engine
 from button_handlers.base import BaseButtonHandler
 
 class DownloadHandler(BaseButtonHandler):
@@ -10,35 +11,36 @@ class DownloadHandler(BaseButtonHandler):
         return self.run_v1()
 
     def run_v1(self):
-        db_name = self.config.get("database")
+        db_file = self.config.get("database")
         table = self.config.get("table")
         code = self.config.get("code", "")
         file_format = self.config.get("file_format", "csv")
 
-        if not db_name or not table:
+        if not db_file or not table:
             return {"status": "error", "message": "Missing database or table."}
 
         try:
-            db_path = os.path.join("data", db_name)
-            conn = sqlite3.connect(db_path)
-            df = pd.read_sql_query(f"SELECT * FROM {table}", conn)
-            conn.close()
+            db_name = db_file.replace('.db', '')
+            engine = create_company_engine(db_name)
 
-            # Optional code filter
+            # 📥 Load data
+            with engine.connect() as conn:
+                df = pd.read_sql_query(text(f'SELECT * FROM "{table}"'), conn)
+
+            # 🧠 Optional code-based filtering
             if code:
                 local_vars = {"df": df}
                 exec(code, {}, local_vars)
                 df = local_vars.get("df", df)
 
-            # ✅ Convert all columns to string to preserve formats
-            df = df.astype(str)
+            df = df.astype(str)  # Ensure all columns export safely
 
             ext = "xlsx" if file_format == "excel" else "csv"
             file_name = f"{table}_export.{ext}"
             file_path = os.path.join("static", file_name)
 
+            # 💾 Export to file
             if file_format == "excel":
-                # ✅ Use xlsxwriter to format all cells as text
                 with pd.ExcelWriter(file_path, engine='xlsxwriter') as writer:
                     df.to_excel(writer, index=False, sheet_name='Sheet1')
                     workbook = writer.book

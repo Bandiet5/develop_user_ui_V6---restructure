@@ -8,6 +8,8 @@
       "left": 0,
       "config": {
         "code": "from uploaded_code.supreme_h import calculate_bank_nupay\ncalculate_bank_nupay()",
+        "group_id": "",
+        "layout_mode": "auto",
         "background": true
       }
     },
@@ -31,8 +33,7 @@
           "amount",
           "debtor_id",
           "mandate_id",
-          "policy_number",
-          "product_name"
+          "policy_number"
         ],
         "lookup_database": "Supreme.db",
         "lookup_table": "nupay_database",
@@ -40,6 +41,8 @@
         "lookup_fields": [
           "debtor_id"
         ],
+        "group_id": "",
+        "layout_mode": "auto",
         "background": false
       }
     },
@@ -55,6 +58,8 @@
         "code": "missing = len(df[(df['policy_number'].isna()) | (df['policy_number'] == '')])\nnot_missing = len(df) - missing\n\nresult = f\"No Policy Numbers: {missing}, Not Missing: {not_missing}\"\nchart = {\n    \"Missing\": int(missing),\n    \"Not Missing\": int(not_missing)\n}\n",
         "refresh_interval": 3600,
         "show_chart": true,
+        "group_id": "",
+        "layout_mode": "auto",
         "background": false
       }
     },
@@ -66,6 +71,8 @@
       "left": 820,
       "config": {
         "code": "from uploaded_code.supreme_h import finalize_bank_nupay\nfinalize_bank_nupay()",
+        "group_id": "",
+        "layout_mode": "auto",
         "background": true
       }
     },
@@ -88,8 +95,7 @@
           "amount",
           "debtor_id",
           "mandate_id",
-          "policy_number",
-          "product_name"
+          "policy_number"
         ],
         "lookup_database": "Supreme.db",
         "lookup_table": "bordereaux_upload",
@@ -97,6 +103,8 @@
         "lookup_fields": [
           "product_name"
         ],
+        "group_id": "",
+        "layout_mode": "auto",
         "background": false
       }
     },
@@ -105,16 +113,71 @@
       "label": "Mini Analytics",
       "version": 2,
       "top": 0,
-      "left": 1220,
+      "left": 1180,
       "config": {
         "database": "Supreme.db",
         "table": "",
         "code": "missing = len(df[(df['product_name'].isna()) | (df['product_name'] == '')])\nnot_missing = len(df) - missing\n\nresult = f\"No Product Name: {missing}, Not Missing: {not_missing}\"\nchart = {\n    \"Missing\": int(missing),\n    \"Not Missing\": int(not_missing)\n}\n",
         "refresh_interval": 3600,
         "show_chart": true,
+        "group_id": "",
+        "layout_mode": "auto",
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Go to Bank Refunds",
+      "version": 1,
+      "top": 20,
+      "left": 2160,
+      "config": {
+        "target": "Go_to_Bank_Refunds",
+        "group_id": "Go to Pages",
+        "layout_mode": "auto",
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Home",
+      "version": 1,
+      "top": 700,
+      "left": 2160,
+      "config": {
+        "target": "Home",
+        "group_id": "Go to Pages",
+        "layout_mode": "auto",
+        "background": false
+      }
+    },
+    {
+      "type": "link",
+      "label": "Go Back",
+      "version": 1,
+      "top": 360,
+      "left": 2160,
+      "config": {
+        "target": "Calculate_Supreme_Heinrich",
+        "group_id": "Go to Pages",
+        "layout_mode": "auto",
+        "background": false
+      }
+    },
+    {
+      "type": "box_trigger",
+      "label": "Go to Pages",
+      "version": 1,
+      "top": 0,
+      "left": 1760,
+      "config": {
+        "behavior": "show_buttons",
+        "alignment": "below",
+        "group_id": "",
+        "layout_mode": "absolute",
         "background": false
       }
     }
   ],
-  "workspace_height": 1956
+  "workspace_height": 1961
 }

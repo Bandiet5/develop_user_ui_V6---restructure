@@ -1,6 +1,7 @@
 import os
-import sqlite3
 import pandas as pd
+from sqlalchemy import text
+from db_config import create_company_engine
 from button_handlers.base import BaseButtonHandler
 
 class MiniAnalyticsHandler(BaseButtonHandler):
@@ -16,13 +17,11 @@ class MiniAnalyticsHandler(BaseButtonHandler):
             return {"status": "error", "message": "Missing database or table."}
 
         try:
-            db_path = os.path.join("data", database)
-            if not os.path.isfile(db_path):
-                return {"status": "error", "message": f"Database not found: {database}"}
+            db_name = database.replace('.db', '')
+            engine = create_company_engine(db_name)
 
-            conn = sqlite3.connect(db_path)
-            df = pd.read_sql_query(f"SELECT * FROM {table}", conn)
-            conn.close()
+            with engine.connect() as conn:
+                df = pd.read_sql_query(text(f'SELECT * FROM "{table}"'), conn)
 
             local_vars = {"df": df}
 
@@ -34,11 +33,10 @@ class MiniAnalyticsHandler(BaseButtonHandler):
                 except Exception as e:
                     return {"status": "error", "message": f"Code execution failed: {e}"}
 
-            # ✅ Support custom outputs
             result_text = local_vars.get("result", f"{len(df)} rows processed.")
             chart_data = local_vars.get("chart", {})
 
-            # ✅ Fallback chart if none provided
+            # ✅ Fallback chart if not provided
             if show_chart and not chart_data and isinstance(df, pd.DataFrame):
                 value_counts = df.iloc[:, 0].value_counts().head(5)
                 chart_data = value_counts.to_dict()

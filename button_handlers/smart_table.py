@@ -1,8 +1,9 @@
 import os
-import sqlite3
 import pandas as pd
 from io import StringIO
 from contextlib import redirect_stdout
+from sqlalchemy import text
+from db_config import create_company_engine
 from button_handlers.base import BaseButtonHandler
 
 class SmartTableHandler(BaseButtonHandler):
@@ -20,15 +21,16 @@ class SmartTableHandler(BaseButtonHandler):
             return {"status": "error", "message": "Missing database or table."}
 
         try:
-            path = os.path.join("data", db)
-            conn = sqlite3.connect(path)
-            df = pd.read_sql_query(f"SELECT * FROM {table}", conn)
-            conn.close()
+            db_name = db.replace(".db", "")
+            engine = create_company_engine(db_name)
+
+            with engine.connect() as conn:
+                df = pd.read_sql_query(text(f'SELECT * FROM "{table}"'), conn)
 
             cell_outputs = {}
             highlight_cells = set()
 
-            # ✅ Run each cell's code and capture output
+            # ✅ Evaluate cell-specific Python code
             for cell_id, code in cell_code.items():
                 if not code.strip():
                     continue
@@ -44,7 +46,7 @@ class SmartTableHandler(BaseButtonHandler):
                 except Exception as e:
                     cell_outputs[cell_id] = f"❌ {str(e)}"
 
-            # ✅ Compare specified cells
+            # ✅ Highlight mismatched comparisons
             for rule in compare_rules:
                 if not isinstance(rule, list) or len(rule) != 2:
                     continue
