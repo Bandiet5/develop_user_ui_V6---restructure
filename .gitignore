@@ -1,2 +1,3 @@
 data/Toets.db
 *.db
+data/*.db
