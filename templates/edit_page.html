@@ -47,8 +47,7 @@
                     isDragging = true;
                 }, 500); // 0.5s is fine now — won't trigger on typing/resizing
             }
-        });
-        
+        }); 
         
         document.addEventListener('mousemove', e => {
     if (isDragging && dragged) {
@@ -76,8 +75,7 @@
                 isDragging = false;
             }
         });
-        
-    
+
         // 🔁 Handle type switch between code vs link
         function toggleActionInput(select) {
             const box = select.closest('.button-box');
@@ -267,15 +265,14 @@
             </select>
         </label><br>
 
-        <label>Table:
-            <select class="table-select">
-                <option value="">-- Choose Table --</option>
-            </select>
+        <label>Export Table Name:
+            <input type="text" class="table-select" placeholder="e.g., smart_summary">
         </label><br>
+        
+        <div class="current-cell-label" style="font-weight:bold; margin-bottom:5px;">Editing Cell: R1C1</div>
 
         <label>Python Code for Selected Cell:<br>
-            <textarea class="code-input" placeholder="e.g., df['amount'].sum()" style="width:100%; height:60px;"
-              oninput="smartCellCode[selectedSmartCell] = this.value"></textarea>
+            <textarea class="code-input" placeholder="e.g., df['amount'].sum()" style="width:100%; height:60px;"></textarea>
         </label><br>
 
         <label>Compare Rules (e.g. R1C1 == R2C2):<br>
@@ -303,6 +300,12 @@
     document.getElementById('workspace').appendChild(div);
 
     renderSmartGrid(div);
+
+    // 🔁 Attach live smart-cell input updater
+    const textarea = div.querySelector('.code-input');
+    textarea.addEventListener('input', () => {
+        smartCellCode[selectedSmartCell] = textarea.value;
+});
 }
 
         function renderSmartGrid(container) {
@@ -317,20 +320,69 @@
         html += `<tr>`;
         for (let c = 1; c <= cols; c++) {
             const cellId = `R${r}C${c}`;
-            html += `<td style="padding:10px; cursor:pointer;" data-cell="${cellId}" onclick="selectSmartCell(this, '${cellId}', this.closest('.button-box'))">${cellId}</td>`;
+            html += `<td class="smart-cell" data-cell="${cellId}" style="padding:10px; cursor:pointer;">${cellId}</td>`;
         }
         html += `</tr>`;
     }
 
     html += `</table>`;
     gridDiv.innerHTML = html;
+
+    gridDiv.querySelectorAll('.smart-cell').forEach(cell => {
+        cell.addEventListener('click', function (e) {
+    const ref = cell.dataset.cell;
+    const box = container;
+    const textarea = box.querySelector('.code-input');
+    const compareInput = box.querySelector('.compare-rules-input');
+    const active = document.activeElement;
+
+    // ✅ 1. Handle Ctrl+Click → insert reference
+    if (e.ctrlKey) {
+        if (active && (active === textarea || active === compareInput)) {
+            const start = active.selectionStart;
+            const end = active.selectionEnd;
+            const val = active.value;
+
+            active.value = val.slice(0, start) + ref + val.slice(end);
+            active.setSelectionRange(start + ref.length, start + ref.length);
+            active.focus();
+
+            // ✅ Don't change cell focus
+            if (active === textarea) {
+                smartCellCode[selectedSmartCell] = active.value;
+            }
+
+            e.stopPropagation();
+            e.preventDefault();
+            return;
+        }
+    }
+
+    // ✅ 2. If not Ctrl, just switch focus
+    selectedSmartCell = ref;
+    if (textarea) {
+        textarea.value = smartCellCode[selectedSmartCell] || "";
+        textarea.focus();
+    }
+
+    const label = box.querySelector('.current-cell-label');
+    if (label) label.textContent = `Editing Cell: ${ref}`;
+});
+
+    });
 }
 
-        function selectSmartCell(td, id, box) {
+        function selectSmartCell(td, id, box, event) {
+    if (event && event.ctrlKey) return;
+
     selectedSmartCell = id;
     const textarea = box.querySelector('.code-input');
+    const label = box.querySelector('.current-cell-label');
+    if (label) label.textContent = `Editing Cell: ${id}`;
     textarea.value = smartCellCode[selectedSmartCell] || "";
+    textarea.focus();
 }
+
 
         function toggleFilterInput(select) {
             const box = select.closest('.button-box');
@@ -1253,9 +1305,7 @@
         `<option value="${dbName}" ${dbName === db ? 'selected' : ''}>${dbName}</option>`
     ).join('');
 
-    const tableOptions = (dbTables[db] || []).map(tbl =>
-        `<option value="${tbl}" ${tbl === table ? 'selected' : ''}>${tbl}</option>`
-    ).join('');
+    const tableInputField = `<input type="text" class="table-select" placeholder="e.g., smart_summary" value="${table}">`;
 
     const compareRuleText = (config.compare_rules || [])
         .map(pair => pair.join(' == '))
@@ -1283,11 +1333,11 @@
             </select>
         </label><br>
 
-        <label>Table:
-            <select class="table-select">
-                ${tableOptions}
-            </select>
+        <label>Export Table Name:
+            ${tableInputField}
         </label><br>
+
+        <div class="current-cell-label" style="font-weight:bold; margin-bottom:5px;">Editing Cell: R1C1</div>
 
         <label>Python Code for Selected Cell:<br>
             <textarea class="code-input" style="width:100%; height:60px;">${smartCellCode[selectedCell] || ''}</textarea>
@@ -1504,15 +1554,24 @@
                 case 'smart_table':
                     config.rows = parseInt(box.querySelector('.rows-input')?.value || '1');
                     config.columns = parseInt(box.querySelector('.cols-input')?.value || '1');
+
+                    // 🆕 Reusing the DB dropdown as target destination
                     config.database = box.querySelector('.db-select')?.value || '';
+
+                    // 🆕 Table name is now typed manually (was a dropdown)
                     config.table = box.querySelector('.table-select')?.value || '';
+
                     config.selected_cell = selectedSmartCell;
                     config.cell_code = smartCellCode;
                     config.background = box.querySelector('.background-check')?.checked || false;
+
                     const rawRules = box.querySelector('.compare-rules-input')?.value || '';
-                    config.compare_rules = rawRules.split('\n')
-                    .map(line => line.trim().split('==').map(part => part.trim())).filter(pair => pair.length === 2);
+                    config.compare_rules = rawRules
+                        .split('\n')
+                        .map(line => line.trim().split('==').map(part => part.trim()))
+                        .filter(pair => pair.length === 2);
                     break;
+
 
                 case 'multi_upload':
                     config.database = box.querySelector('.db-select')?.value || '';

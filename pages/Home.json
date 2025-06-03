@@ -12,7 +12,40 @@
         "layout_mode": "auto",
         "background": false
       }
+    },
+    {
+      "type": "smart_table",
+      "label": "Summary Table test",
+      "version": 1,
+      "top": 20,
+      "left": 680,
+      "config": {
+        "rows": 2,
+        "columns": 2,
+        "database": "Supreme",
+        "table": "tests_summary",
+        "selected_cell": "R2C2",
+        "cell_code": {
+          "R1C1": "print(100)\n",
+          "R1C2": "print(100)",
+          "R2C1": "print(101)",
+          "R2C2": "tests = int(R2C1 - 1)\n\nprint(tests)"
+        },
+        "background": false,
+        "compare_rules": [
+          [
+            "R1C1",
+            "R2C2"
+          ],
+          [
+            "R2C1",
+            "R1C2"
+          ]
+        ],
+        "group_id": "",
+        "layout_mode": "absolute"
+      }
     }
   ],
-  "workspace_height": 887
+  "workspace_height": 1231
 }
